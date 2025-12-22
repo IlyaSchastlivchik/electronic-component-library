@@ -1,0 +1,66 @@
+[
+  {
+    "id": "2N3904",
+    "name": "NPN Silicon Transistor",
+    "type": "bjt",
+    "params": {"Imax": 0.2, "Uce_max": 40, "Ptot": 0.625},
+    "characteristics_file": "characteristics/2n3904_output.txt",
+    "description": "General purpose NPN transistor"
+  },
+  {
+    "id": "KT315",
+    "name": "КТ315 (NPN germanium transistor)",
+    "type": "bjt", 
+    "params": {"Imax": 0.1, "Uce_max": 20, "Ptot": 0.3},
+    "characteristics_file": "characteristics/kt315_output.txt",
+    "description": "Soviet NPN germanium transistor"
+  },
+  {
+    "id": "KT361",
+    "name": "КТ361 (PNP germanium transistor)",
+    "type": "bjt",
+    "params": {"Imax": 0.1, "Uce_max": 20, "Ptot": 0.3},
+    "characteristics_file": "characteristics/kt361_output.txt", 
+    "description": "Soviet PNP germanium transistor"
+  },
+  {
+    "id": "IRFZ44N",
+    "name": "N-Channel MOSFET",
+    "type": "mosfet",
+    "params": {"Imax": 35, "Uce_max": 55, "Ptot": 94},
+    "characteristics_file": "characteristics/irfz44n_output.txt",
+    "description": "Power MOSFET"
+  },
+  {
+    "id": "IRF540N",
+    "name": "N-Channel MOSFET",
+    "type": "mosfet",
+    "params": {"Imax": 33, "Uce_max": 100, "Ptot": 130},
+    "characteristics_file": "characteristics/irf540n_output.txt",
+    "description": "Power MOSFET, 100V 33A"
+  },
+  {
+    "id": "12AX7",
+    "name": "12AX7 Dual Triode", 
+    "type": "vacuum_tube",
+    "params": {"Imax": 0.012, "Uce_max": 300, "Ptot": 2.75},
+    "characteristics_file": "characteristics/12ax7_plate.txt",
+    "description": "Dual triode vacuum tube for audio amplification"
+  },
+  {
+    "id": "6N2P",
+    "name": "6Н2П (Soviet double triode)",
+    "type": "vacuum_tube",
+    "params": {"Imax": 0.008, "Uce_max": 250, "Ptot": 1.0},
+    "characteristics_file": "characteristics/6n2p_output.txt",
+    "description": "Soviet double triode, analog of 12AX7"
+  },
+  {
+    "id": "1N4148",
+    "name": "Fast Switching Diode",
+    "type": "diode",
+    "params": {"Imax": 0.2, "Uce_max": 100, "Ptot": 0.5},
+    "characteristics_file": "characteristics/1n4148_output.txt",
+    "description": "Fast switching diode, 100V 200mA"
+  }
+]
