@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-filter"></i> Фильтры
+            </div>
+            <div class="card-body">
+                <form id="filter-form" method="get" action="/components">
+                    <div class="mb-3">
+                        <label class="form-label">Тип компонента</label>
+                        <select name="type" class="form-select">
+                            <option value="">Все типы</option>
+                            <option value="bjt" {% if filters.type == 'bjt' %}selected{% endif %}>Биполярные транзисторы</option>
+                            <option value="mosfet" {% if filters.type == 'mosfet' %}selected{% endif %}>Полевые транзисторы</option>
+                            <option value="vacuum_tube" {% if filters.type == 'vacuum_tube' %}selected{% endif %}>Лампы</option>
+                            <option value="diode" {% if filters.type == 'diode' %}selected{% endif %}>Диоды</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Происхождение</label>
+                        <select name="origin" class="form-select">
+                            <option value="">Все</option>
+                            <option value="soviet" {% if filters.origin == 'soviet' %}selected{% endif %}>Советские</option>
+                            <option value="usa" {% if filters.origin == 'usa' %}selected{% endif %}>Американские</option>
+                            <option value="other" {% if filters.origin == 'other' %}selected{% endif %}>Другие</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Текстовый поиск</label>
+                        <input type="text" name="search_text" class="form-control" 
+                               placeholder="Название, описание..." value="{{ filters.search_text or '' }}">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Сортировка</label>
+                        <select name="sort_by" class="form-select">
+                            <option value="Ptot_desc" {% if filters.sort_by == 'Ptot_desc' %}selected{% endif %}>Мощность ↓</option>
+                            <option value="Ptot_asc" {% if filters.sort_by == 'Ptot_asc' %}selected{% endif %}>Мощность ↑</option>
+                            <option value="Imax_desc" {% if filters.sort_by == 'Imax_desc' %}selected{% endif %}>Ток ↓</option>
+                            <option value="Imax_asc" {% if filters.sort_by == 'Imax_asc' %}selected{% endif %}>Ток ↑</option>
+                            <option value="Uce_desc" {% if filters.sort_by == 'Uce_desc' %}selected{% endif %}>Напряжение ↓</option>
+                            <option value="Uce_asc" {% if filters.sort_by == 'Uce_asc' %}selected{% endif %}>Напряжение ↑</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search"></i> Применить фильтры
+                    </button>
+                    <a href="/components" class="btn btn-outline-secondary w-100 mt-2">
+                        <i class="fas fa-times"></i> Сбросить
+                    </a>
+                </form>
+            </div>
+        </div>
+        
+        {% if brain_available %}
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <i class="fas fa-robot"></i> ИИ-поиск
+            </div>
+            <div class="card-body">
+                <p class="card-text small">Используйте естественный язык для поиска:</p>
+                <a href="/ai-query" class="btn btn-success w-100">
+                    <i class="fas fa-comment"></i> Задать вопрос ИИ
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <div class="col-md-9">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>
+                <i class="fas fa-microchip"></i> 
+                Компоненты 
+                <span class="badge bg-secondary">{{ count }}</span>
+            </h2>
+            <div>
+                <a href="/api/components?format=json" class="btn btn-outline-info btn-sm" target="_blank">
+                    <i class="fas fa-download"></i> JSON
+                </a>
+            </div>
+        </div>
+        
+        {% if count == 0 %}
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i> 
+            По вашему запросу ничего не найдено. Попробуйте изменить фильтры.
+        </div>
+        {% else %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Название</th>
+                        <th>Тип</th>
+                        <th>Происхождение</th>
+                        <th>Параметры</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for component in components %}
+                    <tr>
+                        <td><strong>{{ component.id }}</strong></td>
+                        <td>{{ component.name }}</td>
+                        <td>
+                            <span class="badge bg-{% if component.type == 'bjt' %}info{% elif component.type == 'mosfet' %}success{% else %}warning{% endif %}">
+                                {{ component.type }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-{% if component.origin == 'soviet' %}warning{% else %}info{% endif %}">
+                                {{ component.origin|upper if component.origin else 'N/A' }}
+                            </span>
+                        </td>
+                        <td>
+                            <small>
+                                I<sub>max</sub>: {{ component.params.Imax }}A<br>
+                                U<sub>ce</sub>: {{ component.params.Uce_max }}V<br>
+                                P<sub>tot</sub>: {{ component.params.Ptot }}W
+                            </small>
+                        </td>
+                        <td>
+                            <a href="/component/{{ component.id }}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

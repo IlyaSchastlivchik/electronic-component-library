@@ -48,3 +48,75 @@ venv\Scripts\activate
 # 🇷🇺 Установите зависимости
 # 🇬🇧 Install dependencies
 pip install -r requirements.txt
+
+# 🤖 Electronic Component Library with AI Assistant
+
+[![Python](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104-green.svg)](https://fastapi.tiangolo.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+**An open-source database of electronic components with AI-powered natural language search**
+
+---
+
+## 🌐 Live Demo
+🚀 **[Try it online!](https://your-deployed-url.here)** *(coming soon)*
+
+## 📸 Screenshots
+![Main Page](https://via.placeholder.com/800x400?text=AI+Component+Library+Interface)
+![Component Search](https://via.placeholder.com/800x400?text=Filter+Components+by+Parameters)
+
+## ✨ Features
+
+### 🔍 Intelligent Search
+- **Natural language queries** (Ask: "Find transistors with current > 0.1A")
+- **Parameter-based filtering** (Type, origin, voltage, current, power)
+- **Soviet/American component database**
+
+### 📊 Visualization
+- **Interactive I-V characteristic plots**
+- **Component comparison tools**
+- **Export data in JSON format**
+
+### 🤖 AI Integration
+- **DeepSeek API integration** for natural language processing
+- **Automatic parameter extraction** from user queries
+- **Component recommendations** based on requirements
+
+### 🌍 Web Interface
+- **Modern responsive design** (Bootstrap 5)
+- **Real-time filtering** and sorting
+- **Detailed component pages** with graphs
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.8+
+- DeepSeek API key (optional, for AI features)
+
+### Installation
+```bash
+# 1. Clone repository
+git clone https://github.com/IlyaSchastlivchik/electronic-component-library.git
+cd electronic-component-library
+
+# 2. Create virtual environment
+python -m venv venv
+
+# 3. Activate virtual environment
+# On Windows:
+venv\Scripts\activate
+# On Linux/Mac:
+source venv/bin/activate
+
+# 4. Install dependencies
+pip install -r requirements.txt
+
+# 5. Set up environment variables
+cp .env.example .env
+# Edit .env file and add your DeepSeek API key
+
+# 6. Run the server
+python web_app.py

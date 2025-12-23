@@ -1,0 +1,112 @@
+/* Основные стили */
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Навигация */
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+/* Карточки */
+.card {
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0 !important;
+}
+
+/* Таблицы */
+.table th {
+    background-color: #f8f9fa;
+    border-top: none;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(13, 110, 253, 0.1);
+}
+
+/* Кнопки */
+.btn {
+    border-radius: 5px;
+    font-weight: 500;
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    border: none;
+}
+
+.btn-success {
+    background: linear-gradient(45deg, #198754, #0d6e3d);
+    border: none;
+}
+
+/* Бейджи */
+.badge {
+    padding: 0.4em 0.8em;
+    font-weight: 500;
+}
+
+/* График */
+.chart-container {
+    position: relative;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .jumbotron {
+        padding: 2rem 1rem !important;
+    }
+    
+    .display-4 {
+        font-size: 2rem;
+    }
+}
+
+/* Анимации */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.card, .table, .jumbotron {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Специальные стили для компонентов */
+.component-param {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.component-value {
+    font-weight: bold;
+    color: #212529;
+}
+
+/* Стили для ИИ-интерфейса */
+.ai-response {
+    background-color: #f0f8ff;
+    border-left: 4px solid #007bff;
+    padding: 1rem;
+    border-radius: 5px;
+    margin: 1rem 0;
+}
+
+.ai-query {
+    background-color: #f8f9fa;
+    border-left: 4px solid #28a745;
+    padding: 1rem;
+    border-radius: 5px;
+    margin: 1rem 0;
+}

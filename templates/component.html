@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Главная</a></li>
+                <li class="breadcrumb-item"><a href="/components">Компоненты</a></li>
+                <li class="breadcrumb-item active">{{ component.id }}</li>
+            </ol>
+        </nav>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0">
+                    <i class="fas fa-microchip"></i> {{ component.id }} - {{ component.name }}
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>Основная информация</h5>
+                        <table class="table table-sm">
+                            <tr>
+                                <th width="40%">Тип:</th>
+                                <td>
+                                    <span class="badge bg-{% if component.type == 'bjt' %}info{% elif component.type == 'mosfet' %}success{% else %}warning{% endif %}">
+                                        {{ component.type }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Происхождение:</th>
+                                <td>
+                                    <span class="badge bg-{% if component.origin == 'soviet' %}warning{% else %}info{% endif %}">
+                                        {{ component.origin|upper if component.origin else 'N/A' }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Описание:</th>
+                                <td>{{ component.description }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h5>Параметры</h5>
+                        <table class="table table-sm">
+                            <tr>
+                                <th width="50%">Максимальный ток (I<sub>max</sub>):</th>
+                                <td><strong>{{ component.params.Imax }} A</strong></td>
+                            </tr>
+                            <tr>
+                                <th>Максимальное напряжение (U<sub>ce</sub>):</th>
+                                <td><strong>{{ component.params.Uce_max }} V</strong></td>
+                            </tr>
+                            <tr>
+                                <th>Максимальная мощность (P<sub>tot</sub>):</th>
+                                <td><strong>{{ component.params.Ptot }} W</strong></td>
+                            </tr>
+                            {% if component.characteristics_file %}
+                            <tr>
+                                <th>Файл характеристик:</th>
+                                <td>
+                                    <a href="/api/components/{{ component.id }}/characteristics?format=json" 
+                                       class="btn btn-sm btn-outline-info" target="_blank">
+                                        <i class="fas fa-download"></i> Скачать данные
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </table>
+                    </div>
+                </div>
+                
+                {% if characteristics %}
+                <div class="mt-4">
+                    <h5><i class="fas fa-chart-line"></i> Вольт-амперная характеристика (ВАХ)</h5>
+                    <div class="chart-container" style="position: relative; height:300px;">
+                        <canvas id="characteristicsChart"></canvas>
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-warning mt-4">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    Характеристики для этого компонента не найдены.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <i class="fas fa-cogs"></i> Действия
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="/api/components/{{ component.id }}" class="btn btn-outline-info" target="_blank">
+                        <i class="fas fa-code"></i> API JSON
+                    </a>
+                    <a href="/api/components/{{ component.id }}/characteristics" class="btn btn-outline-info" target="_blank">
+                        <i class="fas fa-database"></i> Данные ВАХ
+                    </a>
+                    
+                    {% if brain_available %}
+                    <button class="btn btn-success" onclick="openAiQueryForComponent('{{ component.id }}')">
+                        <i class="fas fa-robot"></i> Спросить ИИ об этом компоненте
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <i class="fas fa-info-circle"></i> О проекте
+            </div>
+            <div class="card-body">
+                <p class="small">
+                    Это открытая база данных электронных компонентов.
+                    Вы можете помочь проекту, добавив новые компоненты или исправив существующие данные.
+                </p>
+                <a href="https://github.com/ваш-логин/ai-component-library" 
+                   class="btn btn-outline-dark btn-sm w-100" target="_blank">
+                    <i class="fab fa-github"></i> Внести вклад
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if characteristics %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('characteristicsChart').getContext('2d');
+    
+    // Подготавливаем данные из характеристик
+    const voltages = [{% for point in characteristics %}{{ point.voltage }},{% endfor %}];
+    const currents = [{% for point in characteristics %}{{ point.current }},{% endfor %}];
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: voltages,
+            datasets: [{
+                label: 'Ток (А)',
+                data: currents,
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'ВАХ {{ component.id }}'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `Напряжение: ${context.label}V, Ток: ${context.parsed.y.toExponential(2)}A`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Напряжение (V)'
+                    }
+                },
+                y: {
+                    type: 'logarithmic',
+                    title: {
+                        display: true,
+                        text: 'Ток (A)'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return value.toExponential(1);
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+
+function openAiQueryForComponent(componentId) {
+    window.location.href = `/ai-query?component=${componentId}`;
+}
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0"><i class="fas fa-robot"></i> ИИ-поиск компонентов</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-lightbulb"></i> <strong>Примеры запросов:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>"Найди биполярные транзисторы с током больше 0.1А"</li>
+                        <li>"Покажи все советские компоненты"</li>
+                        <li>"Какие мощные полевые транзисторы есть в базе?"</li>
+                        <li>"Найди компоненты для усилителя класса А"</li>
+                        <li>"Покажи характеристики транзистора 2N3904"</li>
+                    </ul>
+                </div>
+
+                {% if not brain_available %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i> 
+                    ИИ-модуль недоступен. Убедитесь, что:
+                    <ul class="mb-0">
+                        <li>API ключ указан в файле .env</li>
+                        <li>brain.py корректно работает</li>
+                        <li>Сервер запущен</li>
+                    </ul>
+                </div>
+                {% endif %}
+
+                <form id="ai-query-form">
+                    <div class="mb-3">
+                        <label for="ai-query-input" class="form-label">Ваш запрос:</label>
+                        <textarea class="form-control" id="ai-query-input" rows="3" 
+                                  placeholder="Например: Найди мощные советские транзисторы для импульсного блока питания..."></textarea>
+                        <div class="form-text">ИИ понимает запросы на русском и английском языках</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-success btn-lg" id="ai-query-submit" 
+                                {% if not brain_available %}disabled{% endif %}>
+                            <i class="fas fa-paper-plane"></i> Отправить запрос ИИ
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="clearAiQuery()">
+                            <i class="fas fa-eraser"></i> Очистить
+                        </button>
+                    </div>
+                </form>
+
+                <div id="ai-results" class="mt-4">
+                    <!-- Результаты будут появляться здесь -->
+                </div>
+
+                <div id="ai-loading" class="text-center mt-4" style="display: none;">
+                    <div class="spinner-border text-success" role="status">
+                        <span class="visually-hidden">Загрузка...</span>
+                    </div>
+                    <p class="mt-2 text-muted">ИИ обрабатывает ваш запрос...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div id="query-history" class="mb-4">
+                    <!-- История запросов будет загружена здесь -->
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <i class="fas fa-history"></i> История запросов
+                    </div>
+                    <div class="card-body">
+                        <p class="small">Ваши последние запросы будут отображаться здесь.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header bg-info text-white">
+                <i class="fas fa-cogs"></i> Техническая информация
+            </div>
+            <div class="card-body">
+                <h5>Как это работает?</h5>
+                <ol>
+                    <li>Ваш запрос отправляется в DeepSeek API через OpenRouter</li>
+                    <li>ИИ анализирует запрос и преобразует его в JSON-команду</li>
+                    <li>Система выполняет команду на локальном сервере</li>
+                    <li>Результат возвращается и отображается на странице</li>
+                </ol>
+                
+                <h5>Поддерживаемые команды:</h5>
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Тип запроса</th>
+                                <th>Пример</th>
+                                <th>Что возвращает</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Поиск по параметрам</td>
+                                <td>"транзисторы с током > 0.1А"</td>
+                                <td>Список компонентов</td>
+                            </tr>
+                            <tr>
+                                <td>Поиск по типу</td>
+                                <td>"советские лампы"</td>
+                                <td>Компоненты по типу/происхождению</td>
+                            </tr>
+                            <tr>
+                                <td>Информация о компоненте</td>
+                                <td>"характеристики KT315"</td>
+                                <td>Детали и ВАХ компонента</td>
+                            </tr>
+                            <tr>
+                                <td>Сравнение</td>
+                                <td>"сравни 2N3904 и KT315"</td>
+                                <td>Таблица сравнения параметров</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="alert alert-secondary mt-3">
+                    <i class="fas fa-database"></i> <strong>Текущая база данных:</strong>
+                    <ul class="mb-0">
+                        <li>Биполярные транзисторы (BJT): 3 компонента</li>
+                        <li>Полевые транзисторы (MOSFET): 3 компонента</li>
+                        <li>Электронные лампы: 2 компонента</li>
+                        <li>Диоды: 1 компонент</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function clearAiQuery() {
+    document.getElementById('ai-query-input').value = '';
+    document.getElementById('ai-results').innerHTML = '';
+}
+
+// Автозаполнение запроса при загрузке страницы с параметром
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const componentParam = urlParams.get('component');
+    if (componentParam) {
+        document.getElementById('ai-query-input').value = 
+            `Расскажи о компоненте ${componentParam} и его характеристиках`;
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 offset-lg-1">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h3 class="mb-0"><i class="fas fa-info-circle"></i> О проекте</h3>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <h1 class="display-4">AI Component Library</h1>
+                    <p class="lead">Открытая база электронных компонентов с ИИ-ассистентом</p>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-info text-white">
+                                <i class="fas fa-bullseye"></i> Цель проекта
+                            </div>
+                            <div class="card-body">
+                                <p>Создать открытую, машиночитаемую базу данных электронных компонентов с возможностью интеллектуального поиска через естественный язык.</p>
+                                <h5>Решаемые проблемы:</h5>
+                                <ul>
+                                    <li>Отсутствие единой базы ВАХ в цифровом формате</li>
+                                    <li>Сложность поиска компонентов по параметрам</li>
+                                    <li>Необходимость ручного перебора datasheet</li>
+                                    <li>Отсутствие открытых API для доступа к данным компонентов</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-success text-white">
+                                <i class="fas fa-rocket"></i> Возможности
+                            </div>
+                            <div class="card-body">
+                                <ul>
+                                    <li><strong>Поиск на естественном языке</strong> - задавайте вопросы как человеку</li>
+                                    <li><strong>Фильтрация по параметрам</strong> - ток, напряжение, мощность, тип</li>
+                                    <li><strong>Визуализация ВАХ</strong> - интерактивные графики характеристик</li>
+                                    <li><strong>Открытый API</strong> - REST API для разработчиков</li>
+                                    <li><strong>Коллективное развитие</strong> - база пополняется сообществом</li>
+                                    <li><strong>Кроссплатформенность</strong> - работает на Windows, Linux, macOS</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header bg-secondary text-white">
+                                <i class="fas fa-code-branch"></i> Архитектура проекта
+                            </div>
+                            <div class="card-body">
+                                <div class="text-center mb-3">
+                                    <div class="badge bg-primary p-2 m-1">Frontend</div>
+                                    <i class="fas fa-arrow-right mx-2"></i>
+                                    <div class="badge bg-success p-2 m-1">ИИ слой</div>
+                                    <i class="fas fa-arrow-right mx-2"></i>
+                                    <div class="badge bg-info p-2 m-1">API слой</div>
+                                    <i class="fas fa-arrow-right mx-2"></i>
+                                    <div class="badge bg-warning p-2 m-1">Data слой</div>
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Слой</th>
+                                                <th>Технологии</th>
+                                                <th>Описание</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td><span class="badge bg-primary">Frontend</span></td>
+                                                <td>HTML5, CSS3, JavaScript, Bootstrap 5, Chart.js</td>
+                                                <td>Веб-интерфейс для пользователей</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="badge bg-success">ИИ слой</span></td>
+                                                <td>DeepSeek API, OpenRouter, Python brain.py</td>
+                                                <td>Обработка естественного языка</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="badge bg-info">API слой</span></td>
+                                                <td>FastAPI, Uvicorn, REST API</td>
+                                                <td>Сервер для работы с данными</td>
+                                            </tr>
+                                            <tr>
+                                                <td><span class="badge bg-warning">Data слой</span></td>
+                                                <td>JSON, CSV, текстовые файлы</td>
+                                                <td>База данных компонентов и ВАХ</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-4">
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-warning text-white">
+                                <i class="fas fa-history"></i> История версий
+                            </div>
+                            <div class="card-body">
+                                <h5>Фаза 1 (Завершена) - MVP</h5>
+                                <ul>
+                                    <li>Локальный сервер FastAPI</li>
+                                    <li>База из 10 компонентов</li>
+                                    <li>Интеграция с DeepSeek</li>
+                                    <li>Консольный интерфейс</li>
+                                </ul>
+                                
+                                <h5>Фаза 2 (Текущая) - Веб-интерфейс</h5>
+                                <ul>
+                                    <li>Веб-интерфейс на Bootstrap</li>
+                                    <li>Интерактивные графики ВАХ</li>
+                                    <li>ИИ-поиск через веб</li>
+                                    <li>Адаптивный дизайн</li>
+                                </ul>
+                                
+                                <h5>Фаза 3 (Планируется) - Расширение</h5>
+                                <ul>
+                                    <li>100+ компонентов в базе</li>
+                                    <li>Расширенный анализ цепей</li>
+                                    <li>Плагины для KiCad/Eagle</li>
+                                    <li>Мобильное приложение</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header bg-dark text-white">
+                                <i class="fas fa-hands-helping"></i> Как помочь проекту?
+                            </div>
+                            <div class="card-body">
+                                <h5>Для разработчиков:</h5>
+                                <ul>
+                                    <li>Добавляйте новые функции</li>
+                                    <li>Исправляйте ошибки</li>
+                                    <li>Улучшайте код</li>
+                                    <li>Пишите тесты</li>
+                                </ul>
+                                
+                                <h5>Для инженеров:</h5>
+                                <ul>
+                                    <li>Добавляйте новые компоненты</li>
+                                    <li>Оцифровывайте ВАХ</li>
+                                    <li>Проверяйте точность данных</li>
+                                    <li>Предлагайте новые типы данных</li>
+                                </ul>
+                                
+                                <h5>Для всех:</h5>
+                                <ul>
+                                    <li>Тестируйте и сообщайте о багах</li>
+                                    <li>Делитесь проектом в соцсетях</li>
+                                    <li>Приглашайте коллег</li>
+                                    <li>Предлагайте идеи для развития</li>
+                                </ul>
+                                
+                                <div class="text-center mt-3">
+                                    <a href="https://github.com/IlyaSchastlivchik/electronic-component-library" 
+                                       class="btn btn-dark" target="_blank">
+                                        <i class="fab fa-github"></i> Внести вклад на GitHub
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center mt-4">
+                    <div class="btn-group" role="group">
+                        <a href="/" class="btn btn-primary">
+                            <i class="fas fa-home"></i> На главную
+                        </a>
+                        <a href="/components" class="btn btn-info">
+                            <i class="fas fa-search"></i> Поиск компонентов
+                        </a>
+                        <a href="/ai-query" class="btn btn-success">
+                            <i class="fas fa-robot"></i> ИИ-поиск
+                        </a>
+                        <a href="/api/docs" class="btn btn-secondary" target="_blank">
+                            <i class="fas fa-code"></i> API документация
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
