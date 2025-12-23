@@ -5,8 +5,11 @@ from fastapi.templating import Jinja2Templates
 import json
 import os
 import logging
+import asyncio
+import traceback
 from typing import Optional
 import requests
+import httpx
 
 # Настройка логирования
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -33,27 +36,88 @@ def load_components():
 components = load_components()
 
 # ==================== ИНИЦИАЛИЗАЦИЯ ИИ-МОДУЛЯ ====================
-# ИСПРАВЛЕНО: Используем асинхронную версию напрямую
+# Пытаемся загрузить brain.py (синхронная версия)
+brain = None
+brain_available = False
+
 try:
-    from brain_fixed import ComponentLibraryBrain
+    from brain import ComponentLibraryBrain
     brain = ComponentLibraryBrain()
     brain_available = True
-    logger.info("✅ ИИ-модуль (асинхронный) успешно загружен")
+    logger.info("✅ ИИ-модуль (brain.py) успешно загружен")
 except ImportError as e:
-    logger.warning(f"⚠️ brain_fixed.py не найден. ИИ-функциональность недоступна: {e}")
-    brain_available = False
-    brain = None
+    logger.warning(f"⚠️ brain.py не найден. Поиск компонентов через ИИ недоступен: {e}")
 except Exception as e:
-    logger.error(f"❌ Ошибка инициализации brain: {e}")
+    logger.error(f"❌ Ошибка инициализации brain.py: {e}")
     brain_available = False
-    brain = None
+
+# ==================== НОВЫЙ ENDPOINT ДЛЯ ПРОКСИРОВАНИЯ OPENROUTER ====================
+@app.post("/api/openrouter/chat")
+async def proxy_openrouter_chat(request: Request):
+    """
+    Прокси-эндпоинт для запросов к OpenRouter API.
+    Получает ключ пользователя из заголовка и перенаправляет запрос.
+    """
+    try:
+        # 1. Получаем данные и API-ключ из запроса пользователя
+        request_data = await request.json()
+        user_api_key = request.headers.get("X-OpenRouter-API-Key")
+
+        if not user_api_key:
+            logger.warning("Попытка запроса без API-ключа")
+            raise HTTPException(
+                status_code=400,
+                detail="API-ключ OpenRouter не предоставлен. Добавьте его в поле ввода на странице ИИ-поиска."
+            )
+
+        # 2. Подготавливаем запрос к OpenRouter
+        openrouter_url = "https://openrouter.ai/api/v1/chat/completions"
+        
+        # 2.1. Формируем заголовки, включая ключ ПОЛЬЗОВАТЕЛЯ
+        headers = {
+            "Authorization": f"Bearer {user_api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": str(request.base_url),
+            "X-Title": "Electronic Component Library"
+        }
+
+        # 2.2. Формируем тело запроса
+        payload = {
+            "model": request_data.get("model", "deepseek/deepseek-chat"),
+            "messages": request_data.get("messages", []),
+            "temperature": request_data.get("temperature", 0.1),
+            "max_tokens": request_data.get("max_tokens", 1000)
+        }
+
+        # 3. Отправляем запрос к OpenRouter
+        logger.info(f"Проксируем запрос к OpenRouter для модели {payload['model']}")
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                openrouter_url,
+                headers=headers,
+                json=payload
+            )
+            response.raise_for_status()
+            result = response.json()
+
+        # 4. Возвращаем результат пользователю
+        return JSONResponse(result)
+
+    except httpx.HTTPStatusError as e:
+        logger.error(f"Ошибка OpenRouter API: {e.response.status_code} - {e.response.text[:200]}")
+        raise HTTPException(
+            status_code=e.response.status_code,
+            detail=f"Ошибка OpenRouter: {e.response.text[:200]}"
+        )
+    except Exception as e:
+        logger.error(f"Ошибка проксирования запроса: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
 
 # ==================== ВЕБ-ИНТЕРФЕЙС ====================
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     """Главная страница"""
-    # Получаем статистику
     stats = {
         "total_components": len(components),
         "bjt_count": len([c for c in components if c['type'] == 'bjt']),
@@ -64,14 +128,14 @@ async def home(request: Request):
         "usa_count": len([c for c in components if c.get('origin') == 'usa'])
     }
     
-    # Берем несколько компонентов для показа на главной
     featured_components = components[:6]
     
     return templates.TemplateResponse("index.html", {
         "request": request,
         "stats": stats,
         "featured_components": featured_components,
-        "brain_available": brain_available
+        "brain_available": brain_available,
+        "has_openrouter_proxy": True
     })
 
 @app.get("/components", response_class=HTMLResponse)
@@ -83,10 +147,8 @@ async def components_page(
     sort_by: Optional[str] = Query("Ptot_desc")
 ):
     """Страница поиска компонентов"""
-    # Фильтрация компонентов
     filtered = components.copy()
     
-    # Применяем фильтры
     if type:
         filtered = [c for c in filtered if c['type'] == type]
     
@@ -102,7 +164,6 @@ async def components_page(
             or search_lower in c.get('id', '').lower()
         ]
     
-    # Сортировка
     if sort_by:
         try:
             if '_' in sort_by:
@@ -125,13 +186,13 @@ async def components_page(
             "search_text": search_text,
             "sort_by": sort_by
         },
-        "brain_available": brain_available
+        "brain_available": brain_available,
+        "has_openrouter_proxy": True
     })
 
 @app.get("/component/{component_id}", response_class=HTMLResponse)
 async def component_detail(request: Request, component_id: str):
     """Страница компонента"""
-    # Находим компонент
     component = next((c for c in components if c['id'] == component_id), None)
     
     if not component:
@@ -140,10 +201,10 @@ async def component_detail(request: Request, component_id: str):
             "error_code": 404,
             "error_title": "Компонент не найден",
             "error_message": f"Компонент '{component_id}' не найден в базе данных",
-            "brain_available": brain_available
+            "brain_available": brain_available,
+            "has_openrouter_proxy": True
         })
     
-    # Загружаем характеристики если есть
     characteristics = None
     file_path = component.get('characteristics_file')
     
@@ -152,7 +213,6 @@ async def component_detail(request: Request, component_id: str):
             with open(file_path, 'r', encoding='utf-8') as f:
                 data = f.read()
             
-            # Парсим данные
             lines = data.strip().split('\n')
             characteristics = []
             
@@ -177,15 +237,25 @@ async def component_detail(request: Request, component_id: str):
         "request": request,
         "component": component,
         "characteristics": characteristics,
-        "brain_available": brain_available
+        "brain_available": brain_available,
+        "has_openrouter_proxy": True
     })
 
 @app.get("/ai-query", response_class=HTMLResponse)
 async def ai_query_page(request: Request):
     """Страница ИИ-запросов"""
+    stats = {
+        "bjt_count": len([c for c in components if c['type'] == 'bjt']),
+        "mosfet_count": len([c for c in components if c['type'] == 'mosfet']),
+        "tube_count": len([c for c in components if c['type'] == 'vacuum_tube']),
+        "diode_count": len([c for c in components if c['type'] == 'diode'])
+    }
+    
     return templates.TemplateResponse("ai_query.html", {
         "request": request,
-        "brain_available": brain_available
+        "brain_available": brain_available,
+        "has_openrouter_proxy": True,
+        "stats": stats
     })
 
 @app.get("/about", response_class=HTMLResponse)
@@ -193,7 +263,8 @@ async def about_page(request: Request):
     """Страница о проекте"""
     return templates.TemplateResponse("about.html", {
         "request": request,
-        "brain_available": brain_available
+        "brain_available": brain_available,
+        "has_openrouter_proxy": True
     })
 
 # ==================== API ENDPOINTS ====================
@@ -298,19 +369,19 @@ async def api_get_characteristics(component_id: str):
 
 @app.post("/api/ai-query")
 async def api_process_ai_query(request: Request):
-    """API: Обработка ИИ-запроса"""
+    """API: Обработка ИИ-запроса через brain.py (поиск компонентов)"""
     if not brain_available or not brain:
-        logger.error("ИИ-модуль недоступен")
+        logger.error("ИИ-модуль (brain.py) недоступен")
         return JSONResponse({
             "success": False,
-            "error": "ИИ-модуль недоступен"
+            "error": "ИИ-модуль для поиска компонентов недоступен"
         }, status_code=503)
     
     try:
         data = await request.json()
         user_query = data.get("query", "")
         
-        logger.info(f"🔍 ИИ-запрос получен: '{user_query}'")
+        logger.info(f"🔍 ИИ-запрос получен (brain.py): '{user_query}'")
         
         if not user_query:
             logger.warning("Пустой ИИ-запрос")
@@ -319,9 +390,9 @@ async def api_process_ai_query(request: Request):
                 "error": "Пустой запрос"
             }, status_code=400)
         
-        # ИСПРАВЛЕНО: Добавляем await для асинхронного вызова
-        logger.info("⏳ Обработка запроса через brain...")
-        result = await brain.process_query(user_query)  # ВОТ ЗДЕСЬ ДОБАВЬ AWAIT!
+        # Используем asyncio.to_thread для вызова синхронного метода
+        logger.info("⏳ Обработка запроса через brain.py...")
+        result = await asyncio.to_thread(brain.process_query, user_query)
         logger.info(f"✅ Результат обработки: успех={result.get('success')}")
         
         return JSONResponse(result)
@@ -334,7 +405,6 @@ async def api_process_ai_query(request: Request):
         }, status_code=400)
     except Exception as e:
         logger.error(f"Ошибка обработки ИИ-запроса: {e}")
-        import traceback
         logger.error(traceback.format_exc())
         return JSONResponse({
             "success": False,
@@ -350,7 +420,8 @@ async def not_found_handler(request: Request, exc: Exception):
         "error_code": 404,
         "error_title": "Страница не найдена",
         "error_message": f"Страница {request.url.path} не существует",
-        "brain_available": brain_available
+        "brain_available": brain_available,
+        "has_openrouter_proxy": True
     }, status_code=404)
 
 @app.exception_handler(500)
@@ -360,7 +431,8 @@ async def internal_error_handler(request: Request, exc: Exception):
         "error_code": 500,
         "error_title": "Внутренняя ошибка сервера",
         "error_message": "Произошла внутренняя ошибка сервера",
-        "brain_available": brain_available
+        "brain_available": brain_available,
+        "has_openrouter_proxy": True
     }, status_code=500)
 
 # ==================== ЗАПУСК СЕРВЕРА ====================
@@ -372,5 +444,7 @@ if __name__ == "__main__":
     print("📡 API доступен на: http://localhost:8000/api")
     print("🌍 Веб-интерфейс: http://localhost:8000")
     print("📚 Документация API: http://localhost:8000/docs")
+    print("🤖 Режим brain.py доступен:", brain_available)
+    print("🔗 Прокси OpenRouter доступен: True")
     print("="*60)
     uvicorn.run(app, host="0.0.0.0", port=8000)

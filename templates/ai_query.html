@@ -5,44 +5,106 @@
     <div class="col-md-8 offset-md-2">
         <div class="card mb-4">
             <div class="card-header bg-success text-white">
-                <h4 class="mb-0"><i class="fas fa-robot"></i> ИИ-поиск компонентов</h4>
+                <h4 class="mb-0"><i class="fas fa-robot"></i> Интеллектуальный ассистент библиотеки компонентов</h4>
             </div>
             <div class="card-body">
-                <div class="alert alert-info">
-                    <i class="fas fa-lightbulb"></i> <strong>Примеры запросов:</strong>
-                    <ul class="mb-0 mt-2">
-                        <li>"Найди биполярные транзисторы с током больше 0.1А"</li>
-                        <li>"Покажи все советские компоненты"</li>
-                        <li>"Какие мощные полевые транзисторы есть в базе?"</li>
-                        <li>"Найди компоненты для усилителя класса А"</li>
-                        <li>"Покажи характеристики транзистора 2N3904"</li>
-                    </ul>
+                <!-- ФОРМА ВВОДА API-КЛЮЧА -->
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <i class="fas fa-key"></i> Настройка API-ключа OpenRouter
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="openrouter-api-key" class="form-label">Ваш API-ключ OpenRouter:</label>
+                            <div class="input-group">
+                                <input type="password" 
+                                       class="form-control" 
+                                       id="openrouter-api-key"
+                                       placeholder="sk-or-v1-...">
+                                <button class="btn btn-outline-primary" type="button" id="save-api-key-btn">
+                                    <i class="fas fa-save"></i> Сохранить
+                                </button>
+                                <button class="btn btn-outline-secondary" type="button" id="clear-api-key-btn">
+                                    <i class="fas fa-trash"></i> Очистить
+                                </button>
+                            </div>
+                            <div class="form-text">
+                                🔒 Ключ сохраняется только в вашем браузере. 
+                                <a href="https://openrouter.ai/keys" target="_blank">Получить ключ</a>
+                            </div>
+                        </div>
+                        <div id="key-status" class="alert alert-info" style="display: none;">
+                            <!-- Статус ключа будет отображаться здесь -->
+                        </div>
+                    </div>
                 </div>
 
-                {% if not brain_available %}
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle"></i> 
-                    ИИ-модуль недоступен. Убедитесь, что:
-                    <ul class="mb-0">
-                        <li>API ключ указан в файле .env</li>
-                        <li>brain.py корректно работает</li>
-                        <li>Сервер запущен</li>
-                    </ul>
+                <!-- ОПИСАНИЕ ВОЗМОЖНОСТЕЙ СИСТЕМЫ -->
+                <div class="mb-4">
+                    <label class="form-label">Возможности системы:</label>
+                    <div class="form-text">
+                        <div id="system-description">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card mb-3">
+                                        <div class="card-header bg-success text-white">
+                                            <i class="fas fa-comments"></i> <strong>Чат с ИИ</strong>
+                                        </div>
+                                        <div class="card-body">
+                                            <ul class="mb-0">
+                                                <li>Обсуждение вопросов электроники и схемотехники</li>
+                                                <li>Консультации по выбору компонентов</li>
+                                                <li>Объяснение принципов работы электронных устройств</li>
+                                                <li>Помощь в проектировании схем</li>
+                                                <li>Ответы на теоретические вопросы</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="card mb-3">
+                                        <div class="card-header bg-info text-white">
+                                            <i class="fas fa-search"></i> <strong>Поиск компонентов</strong>
+                                        </div>
+                                        <div class="card-body">
+                                            <ul class="mb-0">
+                                                <li>Поиск по параметрам: ток, напряжение, мощность</li>
+                                                <li>Фильтрация по типу компонента и происхождению</li>
+                                                <li>Анализ ВАХ (вольт-амперных характеристик)</li>
+                                                <li>Графическое представление ВАХ компонентов</li>
+                                                <li>Сравнение характеристик различных компонентов</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="alert alert-secondary mt-3">
+                                <i class="fas fa-info-circle"></i> <strong>Система автоматически определяет тип запроса:</strong>
+                                <ul class="mb-0 mt-2">
+                                    <li>Для вопросов общего характера используется <strong>Чат с ИИ (OpenRouter)</strong></li>
+                                    <li>Для поиска компонентов и работы с характеристиками используется <strong>Поиск по базе данных</strong></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                {% endif %}
 
+                <!-- ФОРМА ЗАПРОСА -->
                 <form id="ai-query-form">
                     <div class="mb-3">
                         <label for="ai-query-input" class="form-label">Ваш запрос:</label>
                         <textarea class="form-control" id="ai-query-input" rows="3" 
-                                  placeholder="Например: Найди мощные советские транзисторы для импульсного блока питания..."></textarea>
-                        <div class="form-text">ИИ понимает запросы на русском и английском языках</div>
+                                  placeholder="Например: Найди мощные советские транзисторы для импульсного блока питания или объясни принцип работы MOSFET..."></textarea>
+                        <div class="form-text" id="query-hint">
+                            ИИ понимает запросы на русском и английском языках. Система автоматически выберет нужный режим.
+                        </div>
                     </div>
                     
                     <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-success btn-lg" id="ai-query-submit" 
-                                {% if not brain_available %}disabled{% endif %}>
-                            <i class="fas fa-paper-plane"></i> Отправить запрос ИИ
+                        <button type="submit" class="btn btn-success btn-lg" id="ai-query-submit">
+                            <i class="fas fa-paper-plane"></i> Отправить запрос
                         </button>
                         <button type="button" class="btn btn-outline-secondary" onclick="clearAiQuery()">
                             <i class="fas fa-eraser"></i> Очистить
@@ -79,6 +141,44 @@
                         <p class="small">Ваши последние запросы будут отображаться здесь.</p>
                     </div>
                 </div>
+                
+                <div class="card mt-3">
+                    <div class="card-header bg-warning text-white">
+                        <i class="fas fa-lightbulb"></i> Примеры запросов
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-comments text-success"></i> Вопросы к ИИ:</h6>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item list-group-item-action small" onclick="loadExample(this)">
+                                        Объясни принцип работы биполярного транзистора
+                                    </li>
+                                    <li class="list-group-item list-group-item-action small" onclick="loadExample(this)">
+                                        Как выбрать MOSFET для импульсного блока питания?
+                                    </li>
+                                    <li class="list-group-item list-group-item-action small" onclick="loadExample(this)">
+                                        В чем разница между NPN и PNP транзисторами?
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-search text-info"></i> Поиск компонентов:</h6>
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item list-group-item-action small" onclick="loadExample(this)">
+                                        Найди биполярные транзисторы с током больше 0.1А
+                                    </li>
+                                    <li class="list-group-item list-group-item-action small" onclick="loadExample(this)">
+                                        Покажи советские компоненты мощностью более 10Вт
+                                    </li>
+                                    <li class="list-group-item list-group-item-action small" onclick="loadExample(this)">
+                                        Покажи график ВАХ для транзистора 2N3904
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -88,55 +188,49 @@
             </div>
             <div class="card-body">
                 <h5>Как это работает?</h5>
-                <ol>
-                    <li>Ваш запрос отправляется в DeepSeek API через OpenRouter</li>
-                    <li>ИИ анализирует запрос и преобразует его в JSON-команду</li>
-                    <li>Система выполняет команду на локальном сервере</li>
-                    <li>Результат возвращается и отображается на странице</li>
-                </ol>
-                
-                <h5>Поддерживаемые команды:</h5>
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead>
-                            <tr>
-                                <th>Тип запроса</th>
-                                <th>Пример</th>
-                                <th>Что возвращает</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Поиск по параметрам</td>
-                                <td>"транзисторы с током > 0.1А"</td>
-                                <td>Список компонентов</td>
-                            </tr>
-                            <tr>
-                                <td>Поиск по типу</td>
-                                <td>"советские лампы"</td>
-                                <td>Компоненты по типу/происхождению</td>
-                            </tr>
-                            <tr>
-                                <td>Информация о компоненте</td>
-                                <td>"характеристики KT315"</td>
-                                <td>Детали и ВАХ компонента</td>
-                            </tr>
-                            <tr>
-                                <td>Сравнение</td>
-                                <td>"сравни 2N3904 и KT315"</td>
-                                <td>Таблица сравнения параметров</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-header bg-success text-white">
+                                <i class="fas fa-comments"></i> Чат с ИИ
+                            </div>
+                            <div class="card-body">
+                                <p><strong>Для общих вопросов:</strong></p>
+                                <ol>
+                                    <li>Ваш запрос анализируется системой</li>
+                                    <li>Если это вопрос общего характера, запрос отправляется на OpenRouter</li>
+                                    <li>Модель DeepSeek обрабатывает запрос</li>
+                                    <li>Ответ возвращается и отображается на странице</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-header bg-info text-white">
+                                <i class="fas fa-search"></i> Поиск компонентов
+                            </div>
+                            <div class="card-body">
+                                <p><strong>Для поиска компонентов:</strong></p>
+                                <ol>
+                                    <li>Система определяет, что запрос относится к поиску компонентов</li>
+                                    <li>Запрос обрабатывается локальным ИИ (brain.py)</li>
+                                    <li>Выполняется поиск в базе данных компонентов</li>
+                                    <li>Результаты возвращаются с возможностью просмотра ВАХ</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="alert alert-secondary mt-3">
                     <i class="fas fa-database"></i> <strong>Текущая база данных:</strong>
                     <ul class="mb-0">
-                        <li>Биполярные транзисторы (BJT): 3 компонента</li>
-                        <li>Полевые транзисторы (MOSFET): 3 компонента</li>
-                        <li>Электронные лампы: 2 компонента</li>
-                        <li>Диоды: 1 компонент</li>
+                        <li>Биполярные транзисторы (BJT): {{ stats.bjt_count if stats else '3' }} компонента</li>
+                        <li>Полевые транзисторы (MOSFET): {{ stats.mosfet_count if stats else '3' }} компонента</li>
+                        <li>Электронные лампы: {{ stats.tube_count if stats else '2' }} компонента</li>
+                        <li>Диоды: {{ stats.diode_count if stats else '1' }} компонент</li>
                     </ul>
                 </div>
             </div>
@@ -146,20 +240,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-function clearAiQuery() {
-    document.getElementById('ai-query-input').value = '';
-    document.getElementById('ai-results').innerHTML = '';
-}
-
-// Автозаполнение запроса при загрузке страницы с параметром
-document.addEventListener('DOMContentLoaded', function() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const componentParam = urlParams.get('component');
-    if (componentParam) {
-        document.getElementById('ai-query-input').value = 
-            `Расскажи о компоненте ${componentParam} и его характеристиках`;
-    }
-});
-</script>
+<!-- Функции для работы с ИИ уже в app.js -->
 {% endblock %}

@@ -1,32 +1,928 @@
-// Основные функции веб-интерфейса
+// Основные функции веб-интерфейса библиотеки компонентов
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Инициализация tooltips Bootstrap
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
+// Функция для экранирования HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Функция для показа уведомлений
+function showNotification(message, type = 'info') {
+    let notificationContainer = document.getElementById('notification-container');
+    if (!notificationContainer) {
+        notificationContainer = document.createElement('div');
+        notificationContainer.id = 'notification-container';
+        notificationContainer.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            width: 300px;
+        `;
+        document.body.appendChild(notificationContainer);
+    }
+
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} alert-dismissible fade show`;
+    notification.style.cssText = `
+        margin-bottom: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        animation: slideIn 0.3s ease-out;
+    `;
+    
+    const icon = type === 'success' ? 'check-circle' : 
+                 type === 'warning' ? 'exclamation-triangle' : 
+                 type === 'danger' ? 'times-circle' : 'info-circle';
+    
+    notification.innerHTML = `
+        <i class="fas fa-${icon} me-2"></i>
+        ${escapeHtml(message)}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    `;
+    
+    notificationContainer.appendChild(notification);
+    
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.classList.remove('show');
+            setTimeout(() => notification.parentNode.removeChild(notification), 300);
+        }
+    }, 5000);
+}
+
+// Управление API-ключом OpenRouter пользователя
+const ApiKeyManager = {
+    saveKey: function() {
+        const apiKeyInput = document.getElementById('openrouter-api-key');
+        const key = apiKeyInput?.value?.trim();
+        
+        if (!key) {
+            showNotification('⚠️ Введите API-ключ', 'warning');
+            return false;
+        }
+
+        if (!key.startsWith('sk-or-')) {
+            showNotification('❌ Неверный формат ключа. Ключ OpenRouter начинается с "sk-or-"', 'danger');
+            return false;
+        }
+
+        localStorage.setItem('user_openrouter_api_key', key);
+        
+        const maskedKey = key.substring(0, 12) + '...' + key.substring(key.length - 4);
+        
+        this.updateKeyStatus(`✅ Ключ сохранен (${maskedKey})`, 'success');
+        
+        if (apiKeyInput) {
+            apiKeyInput.type = 'password';
+        }
+        
+        showNotification('API-ключ сохранен в вашем браузере', 'success');
+        return true;
+    },
+    
+    loadKey: function() {
+        const savedKey = localStorage.getItem('user_openrouter_api_key');
+        const apiKeyInput = document.getElementById('openrouter-api-key');
+        
+        if (savedKey && apiKeyInput) {
+            apiKeyInput.value = savedKey;
+            const maskedKey = savedKey.substring(0, 12) + '...' + savedKey.substring(savedKey.length - 4);
+            this.updateKeyStatus(`🔑 Используется сохраненный ключ (${maskedKey})`, 'info');
+            return savedKey;
+        }
+        return null;
+    },
+    
+    getKey: function() {
+        return localStorage.getItem('user_openrouter_api_key');
+    },
+    
+    hasKey: function() {
+        return !!this.getKey();
+    },
+    
+    updateKeyStatus: function(message, type = 'info') {
+        const statusDiv = document.getElementById('key-status');
+        if (statusDiv) {
+            statusDiv.className = `alert alert-${type}`;
+            statusDiv.innerHTML = `<i class="fas fa-info-circle"></i> ${escapeHtml(message)}`;
+            statusDiv.style.display = 'block';
+        }
+    },
+    
+    clearKey: function() {
+        localStorage.removeItem('user_openrouter_api_key');
+        const apiKeyInput = document.getElementById('openrouter-api-key');
+        if (apiKeyInput) {
+            apiKeyInput.value = '';
+            apiKeyInput.type = 'text';
+        }
+        this.updateKeyStatus('Ключ удален. Введите новый ключ для использования ИИ.', 'warning');
+        showNotification('API-ключ удален', 'info');
+    }
+};
+
+// Функция для анализа типа запроса
+function analyzeQueryType(userQuestion) {
+    const question = userQuestion.toLowerCase();
+    
+    // Ключевые слова для поиска компонентов
+    const searchKeywords = [
+        'найди', 'поиск', 'покажи', 'какие', 'характеристики', 'вах', 'график',
+        'параметры', 'компонент', 'транзистор', 'диод', 'лампа', 'микросхема',
+        'мощность', 'ток', 'напряжение', 'параметр', 'сопротивление',
+        'емкость', 'индуктивность', 'фильтр', 'усилитель', 'генератор',
+        'преобразователь', 'подбери', 'выбери', 'сравни', 'аналоги',
+        'советский', 'импортный', 'зарубежный', 'отечественный',
+        'максимальный', 'минимальный', 'номинальный', 'типовой',
+        'вольт-амперная', 'вольтамперная', 'вольт амперная'
+    ];
+    
+    // Ключевые слова для общих вопросов
+    const chatKeywords = [
+        'объясни', 'расскажи', 'как работает', 'что такое', 'почему',
+        'зачем', 'чем отличается', 'в чем разница', 'какой принцип',
+        'какова схема', 'как подключить', 'как рассчитать',
+        'теория', 'принцип', 'работа', 'устройство', 'конструкция',
+        'применение', 'использование', 'пример', 'схема', 'схемотехника'
+    ];
+    
+    // Проверяем наличие ключевых слов
+    const hasSearchKeywords = searchKeywords.some(keyword => question.includes(keyword));
+    const hasChatKeywords = chatKeywords.some(keyword => question.includes(keyword));
+    
+    // Если есть ключевые слова для поиска, но нет для чата - это поиск
+    if (hasSearchKeywords && !hasChatKeywords) {
+        return 'search';
+    }
+    
+    // Если есть ключевые слова для чата, но нет для поиска - это чат
+    if (hasChatKeywords && !hasSearchKeywords) {
+        return 'chat';
+    }
+    
+    // Если есть оба типа ключевых слов или ни одного - используем эвристику
+    // По умолчанию считаем, что если запрос короткий (менее 20 символов) - это поиск
+    // Если длинный и содержит вопросительные слова - это чат
+    if (question.length < 20) {
+        return 'search';
+    }
+    
+    // Проверяем наличие конкретных идентификаторов компонентов
+    const componentPatterns = [
+        /2n\d+/i, /kt\d+/i, /bc\d+/i, /irf\d+/i, /tip\d+/i,
+        /6п\d+/i, /6п1п/i, /6ж4п/i, /г\d+/i, /д\d+/i
+    ];
+    
+    if (componentPatterns.some(pattern => pattern.test(question))) {
+        return 'search';
+    }
+    
+    // По умолчанию - чат
+    return 'chat';
+}
+
+// Функция для отправки запроса к OpenRouter через прокси
+async function sendOpenRouterQuery(userQuestion) {
+    const userApiKey = ApiKeyManager.getKey();
+    
+    if (!userApiKey) {
+        showNotification('❌ Для режима чата с ИИ необходим API-ключ OpenRouter.', 'danger');
+        return { success: false, error: 'API ключ не указан' };
+    }
+
+    // Создаем системный промпт для ИИ
+    const messages = [
+        {
+            "role": "system",
+            "content": `Ты — ассистент для библиотеки электронных компонентов. 
+                        Библиотека содержит следующие типы компонентов: биполярные транзисторы (bjt), 
+                        полевые транзисторы (mosfet), электронные лампы (vacuum_tube), диоды (diode).
+                        
+                        Пользователи могут искать компоненты по параметрам:
+                        - Imax (максимальный ток, А)
+                        - Uce_max (максимальное напряжение, В)
+                        - Ptot (максимальная мощность, Вт)
+                        - origin (происхождение: soviet, usa, other)
+                        - type (тип компонента)
+                        
+                        Также система может отображать ВАХ (вольт-амперные характеристики) компонентов
+                        в виде графиков и таблиц.
+                        
+                        Отвечай на вопросы о компонентах, их параметрах и применении.
+                        Если запрос подразумевает поиск компонентов, предложи пользователю использовать 
+                        систему фильтров на странице поиска.`
+        },
+        {
+            "role": "user",
+            "content": userQuestion
+        }
+    ];
+
+    try {
+        const response = await fetch('/api/openrouter/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-OpenRouter-API-Key': userApiKey
+            },
+            body: JSON.stringify({
+                model: 'deepseek/deepseek-chat',
+                messages: messages,
+                temperature: 0.1,
+                max_tokens: 1000
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            let errorMessage = `Ошибка API: ${response.status}`;
+            try {
+                const errorData = JSON.parse(errorText);
+                errorMessage = errorData.detail || errorMessage;
+            } catch (e) {
+                errorMessage = errorText.substring(0, 200);
+            }
+            throw new Error(errorMessage);
+        }
+
+        const data = await response.json();
+        return {
+            success: true,
+            response: data.choices?.[0]?.message?.content || 'Нет ответа от ИИ'
+        };
+
+    } catch (error) {
+        console.error('Ошибка при запросе к OpenRouter:', error);
+        return {
+            success: false,
+            error: error.message
+        };
+    }
+}
+
+// Функция для отправки запроса к brain.py (поиск компонентов)
+async function sendBrainQuery(userQuestion) {
+    try {
+        const response = await fetch('/api/ai-query', {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json' 
+            },
+            body: JSON.stringify({ 
+                query: userQuestion 
+            })
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText);
+        }
+        
+        return await response.json();
+    } catch (error) {
+        console.error('Ошибка brain.py запроса:', error);
+        return { 
+            success: false, 
+            error: error.message 
+        };
+    }
+}
+
+// Основная функция отправки ИИ-запроса (автоматически выбирает нужный эндпоинт)
+async function sendAiQuery(userQuestion) {
+    const queryType = analyzeQueryType(userQuestion);
+    console.log(`Определен тип запроса: ${queryType}`);
+    
+    if (queryType === 'chat') {
+        return await sendOpenRouterQuery(userQuestion);
+    } else {
+        return await sendBrainQuery(userQuestion);
+    }
+}
+
+// Функция для отображения ответа от OpenRouter
+function displayOpenRouterResponse(question, result) {
+    const resultsDiv = document.getElementById('ai-results');
+    
+    if (!result.success) {
+        displayAiError(result.error);
+        return;
+    }
+    
+    const html = `
+        <div class="ai-response">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5><i class="fas fa-robot text-success"></i> Ответ ИИ (общий вопрос)</h5>
+                <div>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="copyAiResponse(this)">
+                        <i class="fas fa-copy"></i> Копировать
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card mb-3">
+                <div class="card-header bg-light">
+                    <strong><i class="fas fa-question-circle"></i> Ваш вопрос:</strong>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">${escapeHtml(question)}</p>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <strong><i class="fas fa-comment-dots"></i> Ответ:</strong>
+                </div>
+                <div class="card-body">
+                    <div class="ai-response-content">
+                        ${formatAiResponse(result.response)}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-3 text-center">
+                <button class="btn btn-outline-primary me-2" onclick="useResponseAsQuery('${escapeHtml(question)}')">
+                    <i class="fas fa-redo"></i> Задать уточняющий вопрос
+                </button>
+                <a href="/components" class="btn btn-outline-success">
+                    <i class="fas fa-search"></i> Перейти к поиску компонентов
+                </a>
+            </div>
+        </div>
+    `;
+    
+    resultsDiv.innerHTML = html;
+}
+
+// Функция для создания графика ВАХ с использованием Chart.js
+function createVahChart(points, canvasId = 'vahChart') {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return null;
+    
+    const ctx = canvas.getContext('2d');
+    
+    // Подготовка данных
+    const voltages = points.map(p => p.voltage);
+    const currents = points.map(p => p.current);
+    
+    // Уничтожаем предыдущий график, если есть
+    if (window.currentChart) {
+        window.currentChart.destroy();
+    }
+    
+    // Создаем новый график
+    window.currentChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: voltages,
+            datasets: [{
+                label: 'Ток, А',
+                data: currents,
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'ВАХ (Вольт-Амперная Характеристика)'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `Напряжение: ${context.label} В, Ток: ${context.parsed.y.toExponential(3)} А`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Напряжение, В'
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Ток, А'
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    },
+                    type: 'logarithmic',
+                    min: Math.max(1e-12, Math.min(...currents.filter(c => c > 0)) * 0.1),
+                    max: Math.max(...currents) * 10
+                }
+            }
+        }
     });
     
-    // Обработка формы фильтров (асинхронная загрузка)
+    return window.currentChart;
+}
+
+// Функция для отображения результатов brain.py (поиск компонентов)
+function displayBrainResponse(question, result) {
+    const resultsDiv = document.getElementById('ai-results');
+    
+    if (!result.success) {
+        displayAiError(result.error);
+        return;
+    }
+    
+    let html = `
+        <div class="ai-response">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5><i class="fas fa-search text-info"></i> Результат поиска компонентов</h5>
+                <div>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="copyQueryResult(this)">
+                        <i class="fas fa-copy"></i> Копировать
+                    </button>
+                </div>
+            </div>
+            
+            ${result.command?.explanation ? `<div class="alert alert-info mb-3"><i class="fas fa-info-circle"></i> ${escapeHtml(result.command.explanation)}</div>` : ''}
+            
+            <div class="card mb-3">
+                <div class="card-header bg-light">
+                    <strong><i class="fas fa-question-circle"></i> Ваш запрос:</strong>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0">${escapeHtml(question)}</p>
+                </div>
+            </div>
+    `;
+    
+    if (result.result?.components) {
+        const count = result.result.count || 0;
+        html += `
+            <div class="alert alert-info">
+                <i class="fas fa-microchip"></i> Найдено компонентов: <strong>${count}</strong>
+            </div>
+        `;
+        
+        if (count > 0) {
+            html += `<div class="row mt-3">`;
+            
+            result.result.components.slice(0, 8).forEach(component => {
+                html += `
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h6 class="card-title">${escapeHtml(component.id)}</h6>
+                                <p class="card-text small text-muted">${escapeHtml(component.name)}</p>
+                                <div class="mt-2">
+                                    <span class="badge bg-secondary">${escapeHtml(component.type)}</span>
+                                    ${component.origin ? `<span class="badge bg-info ms-1">${escapeHtml(component.origin.toUpperCase())}</span>` : ''}
+                                </div>
+                                <div class="mt-2">
+                                    <small>
+                                        <strong>Параметры:</strong><br>
+                                        I<sub>max</sub>: ${component.params?.Imax || 0} А<br>
+                                        U<sub>ce</sub>: ${component.params?.Uce_max || 0} В<br>
+                                        P<sub>tot</sub>: ${component.params?.Ptot || 0} Вт
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <div class="d-flex justify-content-between">
+                                    <a href="/component/${encodeURIComponent(component.id)}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i> Подробнее
+                                    </a>
+                                    <button class="btn btn-sm btn-outline-success ms-1" onclick="showComponentVah('${escapeHtml(component.id)}')">
+                                        <i class="fas fa-chart-line"></i> ВАХ
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-info ms-1" onclick="askAboutComponent('${escapeHtml(component.id)}')">
+                                        <i class="fas fa-robot"></i> Спросить
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `</div>`;
+            
+            if (count > 8) {
+                html += `
+                    <div class="mt-3 text-center">
+                        <a href="/components" class="btn btn-outline-secondary">
+                            <i class="fas fa-external-link-alt"></i> Показать все ${count} компонентов
+                        </a>
+                    </div>
+                `;
+            }
+        }
+    } else if (result.result?.characteristics) {
+        const componentId = result.result.component_id || 'Неизвестный';
+        const points = result.result.characteristics || [];
+        
+        html += `
+            <div class="alert alert-success">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-chart-line fa-2x"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0">ВАХ компонента <strong>${escapeHtml(componentId)}</strong></h5>
+                        <p class="mb-0">Количество точек данных: ${points.length}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        if (points.length > 0) {
+            // Добавляем canvas для графика
+            html += `
+                <div class="card mb-3">
+                    <div class="card-header bg-dark text-white">
+                        <i class="fas fa-chart-area"></i> Графическое представление ВАХ
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" style="position: relative; height:400px; width:100%">
+                            <canvas id="vahChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            html += `
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <i class="fas fa-table"></i> Таблица данных ВАХ
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Напряжение (V)</th>
+                                        <th>Ток (A)</th>
+                                        <th>Ток (мА)</th>
+                                        <th>Ток (мкА)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+            `;
+            
+            points.slice(0, 20).forEach((point, index) => {
+                html += `
+                    <tr>
+                        <td>${index + 1}</td>
+                        <td>${point.voltage?.toFixed(3) || '0.000'}</td>
+                        <td>${point.current ? point.current.toExponential(3) : '0.000e+0'}</td>
+                        <td>${point.current ? (point.current * 1000).toExponential(3) : '0.000e+0'}</td>
+                        <td>${point.current ? (point.current * 1000000).toExponential(3) : '0.000e+0'}</td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                                </tbody>
+                            </table>
+                        </div>
+            `;
+            
+            if (points.length > 20) {
+                html += `<p class="text-muted mt-2">... и еще ${points.length - 20} точек данных</p>`;
+            }
+            
+            html += `
+                    </div>
+                </div>
+            `;
+        }
+    } else {
+        html += `
+            <div class="alert alert-secondary">
+                <i class="fas fa-database"></i> <strong>Результат:</strong>
+                <pre class="mt-2 mb-0">${escapeHtml(JSON.stringify(result.result, null, 2))}</pre>
+            </div>
+        `;
+    }
+    
+    html += `</div>`;
+    resultsDiv.innerHTML = html;
+    
+    // Если есть характеристики, создаем график
+    if (result.result?.characteristics && result.result.characteristics.length > 0) {
+        // Даем время на отрисовку DOM
+        setTimeout(() => {
+            createVahChart(result.result.characteristics);
+        }, 100);
+    }
+}
+
+// Форматирование ответа ИИ (простая поддержка Markdown)
+function formatAiResponse(text) {
+    let formatted = escapeHtml(text);
+    
+    // Заменяем Markdown на HTML
+    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    formatted = formatted.replace(/`([^`]+)`/g, '<code class="bg-light p-1 rounded">$1</code>');
+    
+    // Обработка списков
+    formatted = formatted.replace(/^\s*[-*]\s+(.+)$/gm, '<li>$1</li>');
+    formatted = formatted.replace(/(<li>.*<\/li>)/s, '<ul class="mb-2">$1</ul>');
+    
+    // Обработка заголовков
+    formatted = formatted.replace(/^###\s+(.+)$/gm, '<h5 class="mt-3">$1</h5>');
+    formatted = formatted.replace(/^##\s+(.+)$/gm, '<h4 class="mt-3">$1</h4>');
+    formatted = formatted.replace(/^#\s+(.+)$/gm, '<h3 class="mt-3">$1</h3>');
+    
+    // Обработка параграфов и переносов строк
+    formatted = formatted.replace(/\n\n/g, '</p><p>');
+    formatted = formatted.replace(/\n/g, '<br>');
+    
+    return `<p>${formatted}</p>`;
+}
+
+// Функция для показа ВАХ компонента
+async function showComponentVah(componentId) {
+    try {
+        showNotification(`Загрузка характеристик компонента ${componentId}...`, 'info');
+        
+        const response = await fetch(`/api/components/${encodeURIComponent(componentId)}/characteristics`);
+        
+        if (!response.ok) {
+            throw new Error(`Ошибка загрузки характеристик: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Отображаем характеристики
+        const resultsDiv = document.getElementById('ai-results');
+        const html = `
+            <div class="ai-response">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5><i class="fas fa-chart-line text-success"></i> ВАХ компонента ${escapeHtml(componentId)}</h5>
+                    <div>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="window.history.back()">
+                            <i class="fas fa-arrow-left"></i> Назад
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="alert alert-success">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            <i class="fas fa-chart-line fa-2x"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-0">ВАХ компонента <strong>${escapeHtml(componentId)}</strong></h5>
+                            <p class="mb-0">Количество точек данных: ${data.characteristics.length}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-3">
+                    <div class="card-header bg-dark text-white">
+                        <i class="fas fa-chart-area"></i> Графическое представление ВАХ
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container" style="position: relative; height:400px; width:100%">
+                            <canvas id="vahChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header bg-secondary text-white">
+                        <i class="fas fa-table"></i> Таблица данных ВАХ
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Напряжение (V)</th>
+                                        <th>Ток (A)</th>
+                                        <th>Ток (мА)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+        `;
+        
+        data.characteristics.slice(0, 15).forEach((point, index) => {
+            html += `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${point.voltage?.toFixed(3) || '0.000'}</td>
+                    <td>${point.current ? point.current.toExponential(3) : '0.000e+0'}</td>
+                    <td>${point.current ? (point.current * 1000).toFixed(3) : '0.000'}</td>
+                </tr>
+            `;
+        });
+        
+        html += `
+                                </tbody>
+                            </table>
+                        </div>
+        `;
+        
+        if (data.characteristics.length > 15) {
+            html += `<p class="text-muted mt-2">... и еще ${data.characteristics.length - 15} точек данных</p>`;
+        }
+        
+        html += `
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        resultsDiv.innerHTML = html;
+        
+        // Создаем график
+        setTimeout(() => {
+            createVahChart(data.characteristics);
+        }, 100);
+        
+    } catch (error) {
+        console.error('Ошибка при загрузке ВАХ:', error);
+        showNotification(`Ошибка загрузки характеристик: ${error.message}`, 'danger');
+    }
+}
+
+// Функция для копирования ответа ИИ
+function copyAiResponse(button) {
+    const responseContent = button.closest('.ai-response')?.querySelector('.ai-response-content');
+    if (responseContent) {
+        const textToCopy = responseContent.textContent || responseContent.innerText;
+        navigator.clipboard.writeText(textToCopy).then(() => {
+            showNotification('Ответ ИИ скопирован в буфер обмена!', 'success');
+        });
+    }
+}
+
+// Функция для копирования результатов поиска
+function copyQueryResult(button) {
+    const responseContent = button.closest('.ai-response')?.querySelector('.alert-secondary pre') ||
+                           button.closest('.ai-response');
+    if (responseContent) {
+        const textToCopy = responseContent.textContent || responseContent.innerText;
+        navigator.clipboard.writeText(textToCopy.substring(0, 5000)).then(() => {
+            showNotification('Результаты скопированы в буфер обмена!', 'success');
+        });
+    }
+}
+
+// Использовать ответ как новый запрос
+function useResponseAsQuery(originalQuery) {
+    const input = document.getElementById('ai-query-input');
+    if (input) {
+        input.value = `Уточняющий вопрос по теме: ${originalQuery}`;
+        input.focus();
+        showNotification('Готово для уточняющего вопроса', 'info');
+    }
+}
+
+// Функция для запроса ИИ о конкретном компоненте
+function askAboutComponent(componentId) {
+    const input = document.getElementById('ai-query-input');
+    if (input) {
+        input.value = `Расскажи подробно о компоненте ${componentId}, его параметрах, характеристиках и типичном применении в электронных схемах`;
+        input.focus();
+        showNotification('Запрос подготовлен. Нажмите "Отправить" для получения ответа.', 'info');
+    }
+}
+
+// Функция для обработки ошибок ИИ
+function displayAiError(error) {
+    const resultsDiv = document.getElementById('ai-results');
+    
+    let errorMessage = 'Неизвестная ошибка';
+    let errorType = 'danger';
+    
+    if (typeof error === 'string') {
+        errorMessage = error;
+    } else if (error?.message) {
+        errorMessage = error.message;
+    }
+    
+    if (errorMessage.includes('ключ') || errorMessage.includes('API key') || errorMessage.includes('401')) {
+        errorType = 'warning';
+        errorMessage = 'Проблема с API-ключом OpenRouter. Проверьте ключ и попробуйте снова.';
+    } else if (errorMessage.includes('сеть') || errorMessage.includes('интернет')) {
+        errorType = 'info';
+    } else if (errorMessage.includes('model ID') || errorMessage.includes('модель')) {
+        errorType = 'warning';
+        errorMessage = 'Некорректная модель ИИ. Пожалуйста, используйте другую модель.';
+    }
+    
+    const html = `
+        <div class="alert alert-${errorType}">
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <i class="fas fa-exclamation-triangle fa-2x"></i>
+                </div>
+                <div>
+                    <h5 class="alert-heading">Ошибка при обработке запроса</h5>
+                    <p class="mb-0">${escapeHtml(errorMessage)}</p>
+                </div>
+            </div>
+            
+            <div class="mt-3">
+                <strong>Что можно сделать:</strong>
+                <ul class="mb-0">
+                    <li>Проверьте правильность API-ключа OpenRouter (для режима чата)</li>
+                    <li>Убедитесь, что на счету есть средства (бесплатные запросы доступны на <a href="https://openrouter.ai" target="_blank">OpenRouter</a>)</li>
+                    <li>Попробуйте более простой запрос</li>
+                    <li>Используйте обычный поиск через <a href="/components">фильтры</a></li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="text-center mt-3">
+            <button class="btn btn-outline-primary me-2" onclick="document.getElementById('openrouter-api-key').focus()">
+                <i class="fas fa-key"></i> Проверить API-ключ
+            </button>
+            <a href="https://openrouter.ai/keys" target="_blank" class="btn btn-outline-success">
+                <i class="fas fa-external-link-alt"></i> Получить ключ OpenRouter
+            </a>
+        </div>
+    `;
+    
+    resultsDiv.innerHTML = html;
+}
+
+// Функция для очистки поля запроса
+function clearAiQuery() {
+    document.getElementById('ai-query-input').value = '';
+    document.getElementById('ai-results').innerHTML = '';
+    showNotification('Запрос и результаты очищены', 'info');
+}
+
+// Функция для загрузки примера запроса
+function loadExample(element) {
+    const text = element.textContent || element.innerText;
+    document.getElementById('ai-query-input').value = text.trim();
+    document.getElementById('ai-query-input').focus();
+    showNotification('Пример запроса загружен', 'info');
+}
+
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Инициализация tooltips Bootstrap
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.forEach(function(tooltipTriggerEl) {
+        new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // 2. Обработка формы фильтров (если есть на странице)
     const filterForm = document.getElementById('filter-form');
     if (filterForm) {
         filterForm.addEventListener('submit', function(e) {
-            // Показываем индикатор загрузки при отправке формы фильтров
             const submitBtn = this.querySelector('button[type="submit"]');
             if (submitBtn) {
+                const originalHtml = submitBtn.innerHTML;
                 submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Поиск...';
                 submitBtn.disabled = true;
                 
-                // Восстанавливаем кнопку через 2 секунды (на всякий случай)
                 setTimeout(() => {
-                    submitBtn.innerHTML = '<i class="fas fa-search"></i> Применить фильтры';
+                    submitBtn.innerHTML = originalHtml;
                     submitBtn.disabled = false;
-                }, 2000);
+                }, 3000);
             }
         });
     }
     
-    // Обработка ИИ-запросов
+    // 3. Инициализация управления API-ключом
+    ApiKeyManager.loadKey();
+    
+    const saveKeyBtn = document.getElementById('save-api-key-btn');
+    if (saveKeyBtn) {
+        saveKeyBtn.addEventListener('click', () => ApiKeyManager.saveKey());
+    }
+    
+    const clearKeyBtn = document.getElementById('clear-api-key-btn');
+    if (clearKeyBtn) {
+        clearKeyBtn.addEventListener('click', () => ApiKeyManager.clearKey());
+    }
+    
+    const apiKeyInput = document.getElementById('openrouter-api-key');
+    if (apiKeyInput) {
+        apiKeyInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                ApiKeyManager.saveKey();
+            }
+        });
+    }
+    
+    // 4. Обработка формы ИИ-запросов
     const aiQueryForm = document.getElementById('ai-query-form');
     if (aiQueryForm) {
         aiQueryForm.addEventListener('submit', async function(e) {
@@ -37,446 +933,87 @@ document.addEventListener('DOMContentLoaded', function() {
             const resultsDiv = document.getElementById('ai-results');
             const loadingDiv = document.getElementById('ai-loading');
             
-            if (!queryInput.value.trim()) {
+            const userQuestion = queryInput.value.trim();
+            
+            if (!userQuestion) {
                 showNotification('Пожалуйста, введите запрос', 'warning');
                 return;
             }
             
+            // Анализируем тип запроса
+            const queryType = analyzeQueryType(userQuestion);
+            showNotification(`Обработка ${queryType === 'chat' ? 'общего вопроса' : 'поискового запроса'}...`, 'info');
+            
             // Показываем индикатор загрузки
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Обработка...';
-            submitBtn.disabled = true;
+            if (submitBtn) {
+                const originalHtml = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Обработка...';
+                submitBtn.disabled = true;
+            }
             if (loadingDiv) loadingDiv.style.display = 'block';
-            resultsDiv.innerHTML = '';
+            if (resultsDiv) resultsDiv.innerHTML = '';
             
             try {
-                const response = await fetch('/api/ai-query', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        query: queryInput.value
-                    })
-                });
+                const result = await sendAiQuery(userQuestion);
                 
-                const data = await response.json();
-                
-                // Проверяем статус ответа
-                if (!response.ok) {
-                    throw new Error(data.error || `Ошибка сервера: ${response.status}`);
+                if (result) {
+                    if (result.success) {
+                        if (queryType === 'chat') {
+                            displayOpenRouterResponse(userQuestion, result);
+                        } else {
+                            displayBrainResponse(userQuestion, result);
+                        }
+                        saveToHistory(userQuestion, result, queryType);
+                    } else {
+                        displayAiError(result.error);
+                    }
                 }
                 
-                // Отображаем результаты
-                displayAiResults(data);
-                
-                // Сохраняем историю запросов
-                saveToHistory(queryInput.value, data);
-                
             } catch (error) {
-                console.error('Ошибка ИИ-запроса:', error);
-                displayAiError(error);
+                console.error('Ошибка при обработке ИИ-запроса:', error);
+                displayAiError(error.message || 'Неизвестная ошибка');
             } finally {
-                // Восстанавливаем кнопку
-                submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Отправить';
-                submitBtn.disabled = false;
+                if (submitBtn) {
+                    submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Отправить';
+                    submitBtn.disabled = false;
+                }
                 if (loadingDiv) loadingDiv.style.display = 'none';
             }
         });
     }
     
-    // Автозаполнение ИИ-запроса из URL параметра
+    // 5. Автозаполнение ИИ-запроса из URL параметра
     const urlParams = new URLSearchParams(window.location.search);
     const componentParam = urlParams.get('component');
     if (componentParam && document.getElementById('ai-query-input')) {
         document.getElementById('ai-query-input').value = 
-            `Расскажи о компоненте ${componentParam} и его характеристиках`;
+            `Расскажи о компоненте ${escapeHtml(componentParam)}: его параметрах, характеристиках и применении в схемах`;
     }
     
-    // Загрузка истории запросов
+    // 6. Загрузка истории запросов
     loadQueryHistory();
-    
-    // Инициализация кнопок "копировать ссылку"
-    initCopyButtons();
 });
 
-// Функция для отображения результатов ИИ-запроса
-function displayAiResults(data) {
-    const resultsDiv = document.getElementById('ai-results');
-    
-    if (!data.success) {
-        displayAiError(data.error || 'Неизвестная ошибка обработки запроса');
-        return;
-    }
-    
-    let html = `
-        <div class="ai-response">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5><i class="fas fa-robot"></i> Результат запроса</h5>
-                <button class="btn btn-sm btn-outline-secondary" onclick="copyQueryResult(this)">
-                    <i class="fas fa-copy"></i> Копировать
-                </button>
-            </div>
-            ${data.command?.explanation ? `<p class="text-muted mb-3"><small>${data.command.explanation}</small></p>` : ''}
-            <hr>
-    `;
-    
-    // Обрабатываем разные типы результатов
-    if (data.result.components) {
-        // Список компонентов
-        const count = data.result.count || 0;
-        html += `
-            <div class="alert alert-info">
-                <i class="fas fa-microchip"></i> Найдено компонентов: <strong>${count}</strong>
-            </div>
-        `;
-        
-        if (count > 0) {
-            html += `<div class="row mt-3">`;
-            
-            data.result.components.slice(0, 6).forEach(component => {
-                html += `
-                    <div class="col-md-6 mb-3">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <h6 class="card-title">${escapeHtml(component.id)}</h6>
-                                <p class="card-text small">${escapeHtml(component.name)}</p>
-                                <div class="mt-2">
-                                    <span class="badge bg-secondary">${escapeHtml(component.type)}</span>
-                                    ${component.origin ? `<span class="badge bg-info">${escapeHtml(component.origin.toUpperCase())}</span>` : ''}
-                                </div>
-                                <div class="mt-2">
-                                    <small class="text-muted">
-                                        I<sub>max</sub>: ${component.params?.Imax || 0}A<br>
-                                        U<sub>ce</sub>: ${component.params?.Uce_max || 0}V<br>
-                                        P<sub>tot</sub>: ${component.params?.Ptot || 0}W
-                                    </small>
-                                </div>
-                            </div>
-                            <div class="card-footer">
-                                <a href="/component/${encodeURIComponent(component.id)}" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-eye"></i> Подробнее
-                                </a>
-                                <button class="btn btn-sm btn-outline-info ms-1" onclick="askAboutComponent('${escapeHtml(component.id)}')">
-                                    <i class="fas fa-robot"></i> Спросить ИИ
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            html += `</div>`;
-            
-            if (count > 6) {
-                html += `
-                    <div class="mt-3 text-center">
-                        <a href="/components" class="btn btn-outline-secondary">
-                            Показать все ${count} компонентов
-                        </a>
-                    </div>
-                `;
-            }
-        }
-        
-    } else if (data.result.characteristics) {
-        // Характеристики компонента
-        const componentId = data.result.component_id || 'Неизвестный';
-        const points = data.result.characteristics || [];
-        
-        html += `
-            <div class="alert alert-success">
-                <i class="fas fa-chart-line"></i> Характеристики компонента <strong>${escapeHtml(componentId)}</strong>
-            </div>
-        `;
-        
-        if (points.length > 0) {
-            html += `
-                <h6>ВАХ (вольт-амперная характеристика):</h6>
-                <div class="table-responsive">
-                    <table class="table table-sm table-striped">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Напряжение (V)</th>
-                                <th>Ток (A)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-            `;
-            
-            points.slice(0, 15).forEach(point => {
-                html += `
-                    <tr>
-                        <td>${point.voltage?.toFixed(3) || 'N/A'}</td>
-                        <td>${point.current ? point.current.toExponential(3) : 'N/A'}</td>
-                    </tr>
-                `;
-            });
-            
-            html += `
-                        </tbody>
-                    </table>
-                </div>
-            `;
-            
-            if (points.length > 15) {
-                html += `<p class="text-muted">... и еще ${points.length - 15} точек</p>`;
-            }
-            
-            html += `
-                <div class="mt-3">
-                    <a href="/component/${encodeURIComponent(componentId)}" class="btn btn-primary">
-                        <i class="fas fa-external-link-alt"></i> Перейти к графику ВАХ
-                    </a>
-                </div>
-            `;
-        } else {
-            html += `
-                <div class="alert alert-warning">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    Нет данных о характеристиках
-                </div>
-            `;
-        }
-        
-    } else if (data.result.id) {
-        // Информация о компоненте
-        const component = data.result;
-        html += `
-            <div class="card mb-3">
-                <div class="card-header bg-primary text-white">
-                    <i class="fas fa-info-circle"></i> Информация о компоненте
-                </div>
-                <div class="card-body">
-                    <h5>${escapeHtml(component.id)} - ${escapeHtml(component.name)}</h5>
-                    <p>${escapeHtml(component.description || '')}</p>
-                    
-                    <div class="row mt-3">
-                        <div class="col-md-6">
-                            <h6>Основные данные:</h6>
-                            <ul class="list-unstyled">
-                                <li><strong>Тип:</strong> <span class="badge bg-secondary">${escapeHtml(component.type)}</span></li>
-                                ${component.origin ? `<li><strong>Происхождение:</strong> <span class="badge bg-info">${escapeHtml(component.origin.toUpperCase())}</span></li>` : ''}
-                            </ul>
-                        </div>
-                        <div class="col-md-6">
-                            <h6>Параметры:</h6>
-                            <ul class="list-unstyled">
-                                ${component.params?.Imax ? `<li><strong>Макс. ток:</strong> ${component.params.Imax} A</li>` : ''}
-                                ${component.params?.Uce_max ? `<li><strong>Макс. напряжение:</strong> ${component.params.Uce_max} V</li>` : ''}
-                                ${component.params?.Ptot ? `<li><strong>Макс. мощность:</strong> ${component.params.Ptot} W</li>` : ''}
-                            </ul>
-                        </div>
-                    </div>
-                    
-                    <div class="mt-3">
-                        <a href="/component/${encodeURIComponent(component.id)}" class="btn btn-primary me-2">
-                            <i class="fas fa-chart-line"></i> График ВАХ
-                        </a>
-                        <button class="btn btn-success" onclick="askAboutComponent('${escapeHtml(component.id)}')">
-                            <i class="fas fa-robot"></i> Спросить ИИ о компоненте
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-    } else {
-        // Произвольный ответ от ИИ
-        html += `
-            <div class="alert alert-secondary">
-                <pre class="mb-0">${escapeHtml(JSON.stringify(data.result, null, 2))}</pre>
-            </div>
-        `;
-    }
-    
-    html += `</div>`;
-    resultsDiv.innerHTML = html;
-}
-
-// Функция для обработки ошибок ИИ
-function displayAiError(error) {
-    const resultsDiv = document.getElementById('ai-results');
-    
-    let errorMessage = 'Неизвестная ошибка';
-    let errorDetails = '';
-    let errorType = 'danger';
-    
-    if (error && error.message) {
-        errorMessage = error.message;
-        errorDetails = error.stack || '';
-    } else if (typeof error === 'string') {
-        errorMessage = error;
-    } else if (error && typeof error === 'object') {
-        errorMessage = error.error || 'Ошибка обработки запроса';
-        errorDetails = JSON.stringify(error, null, 2);
-    }
-    
-    // Определяем тип ошибки по содержанию
-    if (errorMessage.includes('недоступен') || errorMessage.includes('отключен')) {
-        errorType = 'warning';
-    } else if (errorMessage.includes('не найден') || errorMessage.includes('отсутствует')) {
-        errorType = 'info';
-    }
-    
-    let html = `
-        <div class="alert alert-${errorType}">
-            <div class="d-flex">
-                <div class="me-3">
-                    <i class="fas fa-exclamation-triangle fa-2x"></i>
-                </div>
-                <div>
-                    <h5 class="alert-heading">Ошибка ИИ-обработки</h5>
-                    <p class="mb-2">${escapeHtml(errorMessage)}</p>
-                    <hr>
-                    
-                    <div class="small">
-                        <strong>Возможные причины:</strong>
-                        <ul class="mb-2">
-                            <li>API ключ не указан или неверный</li>
-                            <li>Сервер ИИ недоступен (OpenRouter/DeepSeek)</li>
-                            <li>Проблема с интернет-соединением</li>
-                            <li>Некорректный формат запроса</li>
-                            <li>Лимит запросов к API исчерпан</li>
-                        </ul>
-                        
-                        <strong>Что можно сделать:</strong>
-                        <ol class="mb-0">
-                            <li>Проверьте наличие файла .env с API ключом</li>
-                            <li>Убедитесь, что сервер запущен (<a href="http://localhost:8000">localhost:8000</a>)</li>
-                            <li>Попробуйте более простой запрос</li>
-                            <li>Используйте обычный поиск через <a href="/components">фильтры</a></li>
-                        </ol>
-                    </div>
-    `;
-    
-    if (errorDetails && errorDetails.length < 1000) {
-        html += `
-            <div class="mt-3">
-                <details>
-                    <summary class="btn btn-sm btn-outline-${errorType}">
-                        <i class="fas fa-code"></i> Технические детали
-                    </summary>
-                    <div class="mt-2">
-                        <pre class="bg-dark text-light p-2 rounded small"><code>${escapeHtml(errorDetails)}</code></pre>
-                    </div>
-                </details>
-            </div>
-        `;
-    }
-    
-    html += `
-                </div>
-            </div>
-        </div>
-        
-        <div class="text-center mt-3">
-            <a href="/components" class="btn btn-outline-primary me-2">
-                <i class="fas fa-search"></i> Поиск компонентов
-            </a>
-            <a href="/" class="btn btn-outline-secondary">
-                <i class="fas fa-home"></i> На главную
-            </a>
-        </div>
-    `;
-    
-    resultsDiv.innerHTML = html;
-    
-    // Показываем уведомление
-    showNotification('Ошибка при обработке ИИ-запроса', errorType);
-}
-
-// Функция для копирования API ссылок
-function copyApiLink(url) {
-    navigator.clipboard.writeText(url).then(() => {
-        showNotification('Ссылка скопирована в буфер обмена!', 'success');
-    }).catch(err => {
-        showNotification('Ошибка копирования: ' + err.message, 'danger');
-    });
-}
-
-// Функция для копирования результата запроса
-function copyQueryResult(button) {
-    const resultDiv = button.closest('.ai-response');
-    if (!resultDiv) return;
-    
-    const textToCopy = resultDiv.innerText;
-    navigator.clipboard.writeText(textToCopy).then(() => {
-        showNotification('Результат скопирован в буфер обмена!', 'success');
-    }).catch(err => {
-        showNotification('Ошибка копирования: ' + err.message, 'danger');
-    });
-}
-
-// Функция для запроса ИИ о конкретном компоненте
-function askAboutComponent(componentId) {
-    const input = document.getElementById('ai-query-input');
-    if (input) {
-        input.value = `Расскажи подробно о компоненте ${componentId}, его параметрах и применении`;
-        input.focus();
-        
-        // Автоматически отправляем запрос через 500мс
-        setTimeout(() => {
-            const submitBtn = document.getElementById('ai-query-submit');
-            if (submitBtn && !submitBtn.disabled) {
-                submitBtn.click();
-            }
-        }, 500);
-    } else {
-        // Если страница с ИИ-запросами не открыта, переходим на нее
-        window.location.href = `/ai-query?component=${encodeURIComponent(componentId)}`;
-    }
-}
-
-// Функция для показа уведомлений
-function showNotification(message, type = 'info') {
-    // Создаем элемент уведомления
-    const notification = document.createElement('div');
-    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        z-index: 9999;
-        min-width: 300px;
-        max-width: 400px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    `;
-    
-    notification.innerHTML = `
-        <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : type === 'danger' ? 'times-circle' : 'info-circle'} me-2"></i>
-        ${escapeHtml(message)}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    `;
-    
-    // Добавляем уведомление в body
-    document.body.appendChild(notification);
-    
-    // Автоматически скрываем через 5 секунд
-    setTimeout(() => {
-        if (notification.parentNode) {
-            notification.classList.remove('show');
-            setTimeout(() => notification.parentNode.removeChild(notification), 300);
-        }
-    }, 5000);
-}
-
 // Функция для сохранения запроса в истории
-function saveToHistory(query, result) {
+function saveToHistory(query, result, type) {
     try {
         const history = JSON.parse(localStorage.getItem('ai_query_history') || '[]');
         
         history.unshift({
             query: query,
+            type: type,
+            response: result.response ? result.response.substring(0, 200) + '...' : 'Результаты поиска',
             timestamp: new Date().toISOString(),
-            success: result.success,
-            resultCount: result.result?.count || 0
+            success: result.success
         });
         
-        // Сохраняем только последние 20 запросов
         if (history.length > 20) {
             history.length = 20;
         }
         
         localStorage.setItem('ai_query_history', JSON.stringify(history));
+        
+        loadQueryHistory();
     } catch (e) {
         console.warn('Не удалось сохранить историю запросов:', e);
     }
@@ -489,25 +1026,34 @@ function loadQueryHistory() {
         const historyElement = document.getElementById('query-history');
         
         if (historyElement && history.length > 0) {
-            let html = '<h6>История запросов:</h6><ul class="list-group small">';
+            let html = '<h6><i class="fas fa-history"></i> История запросов:</h6><div class="list-group">';
             
             history.slice(0, 5).forEach((item, index) => {
                 const date = new Date(item.timestamp);
                 const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 const dateStr = date.toLocaleDateString();
+                const typeIcon = item.type === 'chat' ? 'fa-comments text-success' : 'fa-search text-info';
+                const typeText = item.type === 'chat' ? 'Чат' : 'Поиск';
                 
                 html += `
-                    <li class="list-group-item list-group-item-action" onclick="loadHistoryQuery(${index})">
-                        <div class="d-flex justify-content-between">
-                            <span class="text-truncate" style="max-width: 250px;">${escapeHtml(item.query)}</span>
-                            <span class="badge bg-${item.success ? 'success' : 'danger'}">${item.resultCount || 0}</span>
+                    <a href="javascript:void(0)" class="list-group-item list-group-item-action" onclick="loadHistoryQuery(${index})">
+                        <div class="d-flex w-100 justify-content-between">
+                            <small class="text-truncate" style="max-width: 200px;" title="${escapeHtml(item.query)}">
+                                <i class="fas ${typeIcon} me-1"></i> ${escapeHtml(item.query)}
+                            </small>
+                            <small class="text-${item.success ? 'success' : 'danger'}">
+                                <i class="fas fa-${item.success ? 'check' : 'times'}"></i>
+                            </small>
                         </div>
-                        <small class="text-muted">${dateStr} ${timeStr}</small>
-                    </li>
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <small class="text-muted">${dateStr} ${timeStr}</small>
+                            <small class="badge bg-${item.type === 'chat' ? 'success' : 'info'}">${typeText}</small>
+                        </div>
+                    </a>
                 `;
             });
             
-            html += '</ul>';
+            html += '</div>';
             historyElement.innerHTML = html;
         }
     } catch (e) {
@@ -532,31 +1078,15 @@ function loadHistoryQuery(index) {
     }
 }
 
-// Функция для экранирования HTML
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-// Функция для инициализации кнопок копирования
-function initCopyButtons() {
-    // Находим все кнопки копирования API ссылок
-    document.querySelectorAll('[data-copy-url]').forEach(button => {
-        button.addEventListener('click', function() {
-            const url = this.getAttribute('data-copy-url');
-            if (url) {
-                copyApiLink(url);
-            }
-        });
-    });
-}
-
 // Экспортируем функции для глобального использования
-window.copyApiLink = copyApiLink;
-window.displayAiResults = displayAiResults;
-window.displayAiError = displayAiError;
+window.ApiKeyManager = ApiKeyManager;
 window.askAboutComponent = askAboutComponent;
-window.copyQueryResult = copyQueryResult;
-window.loadHistoryQuery = loadHistoryQuery;
 window.showNotification = showNotification;
+window.loadHistoryQuery = loadHistoryQuery;
+window.clearAiQuery = clearAiQuery;
+window.loadExample = loadExample;
+window.useResponseAsQuery = useResponseAsQuery;
+window.copyAiResponse = copyAiResponse;
+window.copyQueryResult = copyQueryResult;
+window.showComponentVah = showComponentVah;
+window.createVahChart = createVahChart;

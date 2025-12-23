@@ -4,20 +4,57 @@ import requests
 from typing import Dict
 from dotenv import load_dotenv
 
-# Загружаем переменные окружения с принудительным перезаписыванием
-load_dotenv(override=True)
+# 🔧 КРИТИЧЕСКАЯ ПРАВКА ДЛЯ RENDER - ЕДИНЫЙ ПУТЬ
+# Проверяем все возможные пути к конфигурации
+def load_environment():
+    env_paths = [
+        '/etc/secrets/.env',    # Render Secret Files
+        '.env',                  # Локальная разработка
+        '../.env',               # Альтернативный локальный путь
+        '../../.env'             # Еще один возможный путь
+    ]
+    
+    for path in env_paths:
+        if os.path.exists(path):
+            load_dotenv(path, override=True)
+            print(f"✅ Загружен .env из {path}")
+            return True
+    
+    print("⚠️  .env файл не найден. Использую переменные окружения системы.")
+    return False
+
+# Загружаем конфигурацию
+load_environment()
 
 class ComponentLibraryBrain:
     def __init__(self):
+        # 🔧 ОСНОВНЫЕ ПЕРЕМЕННЫЕ ДЛЯ OPENROUTER И DEEPSEEK V3
         self.api_key = os.getenv("OPENROUTER_API_KEY")
-        self.base_url = "http://localhost:8000/api"  # Важно: с /api в конце
-        self.model = os.getenv("OPENROUTER_MODEL", "deepseek/deepseek-chat")
+        self.model = os.getenv("OPENROUTER_MODEL", "deepseek/deepseek-chat")  # ⬅️ CHAT по умолчанию
         
+        # 🔧 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ ДЛЯ RENDER
+        # На Render нужно использовать localhost с портом из переменной PORT
+        render_port = os.environ.get("PORT", "8000")
+        if "RENDER" in os.environ:  # Автоматическое определение Render
+            self.base_url = f"http://localhost:{render_port}"
+            print(f"🌍 Обнаружена среда Render, использую localhost:{render_port}")
+        else:
+            self.base_url = os.getenv("API_BASE_URL", "http://localhost:8000")
+        
+        # Настройки приложения
+        self.app_name = os.getenv("APP_NAME", "Electronic Component Library")
+        self.app_url = os.getenv("APP_URL", f"http://localhost:{render_port}")
+        
+        # 🔧 ВАЛИДАЦИЯ КОНФИГУРАЦИИ
         if not self.api_key:
-            raise ValueError("❌ OPENROUTER_API_KEY не найден в .env файле!")
+            print("⚠️  OPENROUTER_API_KEY не найден! Режим brain.py будет работать только для поиска в локальной базе.")
         else:
             print(f"✅ API-ключ загружен: {self.api_key[:20]}...")
+            print(f"🤖 Используется модель: {self.model}")
         
+        print(f"🌐 API_BASE_URL: {self.base_url}")
+        
+        # 🔧 КОНФИГУРАЦИЯ БИБЛИОТЕКИ
         self.library_schema = {
             "name": "Electronic Component Library",
             "description": "Библиотека электронных компонентов с параметрами и характеристиками",
@@ -55,52 +92,80 @@ class ComponentLibraryBrain:
         }
     
     def create_prompt(self, user_question: str) -> str:
-        prompt = f"""Ты — ассистент для библиотеки электронных компонентов.
-        
-Информация о библиотеке:
+        """Создание промпта для ИИ на основе вопроса пользователя"""
+        prompt = f"""
+Ты - система поиска электронных компонентов. Твоя задача - анализировать запросы пользователей и преобразовывать их в команды поиска.
+
+Доступные команды:
+1. search_components - поиск компонентов по параметрам
+2. get_component_details - получение детальной информации о компоненте
+3. get_characteristics - получение характеристик (ВАХ) компонента
+
+Схема библиотеки:
 {json.dumps(self.library_schema, ensure_ascii=False, indent=2)}
 
 Запрос пользователя: "{user_question}"
 
-Ответь ТОЛЬКО валидным JSON без лишнего текста.
-
-ВАЖНОЕ ПРАВИЛО ДЛЯ ПОИСКА:
-1. Используй только доступные параметры из схемы.
-2. Если тип не указан явно, не используй параметр "type".
+Верни ответ в формате JSON:
+{{
+    "command": "имя_команды",
+    "args": {{параметры}},
+    "explanation": "Пояснение на русском языке, что будет сделано"
+}}
 
 Примеры:
-Вопрос: "Найди биполярные транзисторы с током от 0.1А"
-Ответ: {{"command": "search_components", "args": {{"type": "bjt", "Imax_min": 0.1}}, "explanation": "Ищу биполярные транзисторы с током от 0.1А"}}
+1. Запрос: "Найди советские транзисторы с током больше 0.1А"
+   Ответ: {{
+        "command": "search_components",
+        "args": {{"origin": "soviet", "Imax_min": 0.1, "type": "bjt"}},
+        "explanation": "Поиск советских биполярных транзисторов с током более 0.1А"
+   }}
 
-Вопрос: "Покажи самый мощный транзистор"
-Ответ: {{"command": "search_components", "args": {{"sort_by": "Ptot_desc"}}, "explanation": "Ищу транзисторы, отсортированные по мощности"}}
+2. Запрос: "Покажи характеристики транзистора 2N3904"
+   Ответ: {{
+        "command": "get_characteristics",
+        "args": {{"component_id": "2N3904"}},
+        "explanation": "Получение вольт-амперных характеристик транзистора 2N3904"
+   }}
 
-Вопрос: "Найди советские компоненты"
-Ответ: {{"command": "search_components", "args": {{"origin": "soviet"}}, "explanation": "Ищу компоненты советского производства"}}
+3. Запрос: "Какие мощные полевые транзисторы есть в базе?"
+   Ответ: {{
+        "command": "search_components",
+        "args": {{"type": "mosfet", "Ptot_min": 10}},
+        "explanation": "Поиск полевых транзисторов мощностью более 10Вт"
+   }}
 
-Вопрос: "Характеристики 2N3904"
-Ответ: {{"command": "get_characteristics", "args": {{"component_id": "2N3904"}}, "explanation": "Получаю ВАХ транзистора 2N3904"}}
-
-Теперь ответь на: "{user_question}"
-
-JSON ответ:"""
+Теперь обработай запрос пользователя и верни JSON:
+"""
         return prompt
     
     def ask_openrouter(self, prompt: str) -> str:
-        """Отправка запроса к OpenRouter"""
+        """Отправка запроса к OpenRouter для DeepSeek Chat"""
+        # Если нет API ключа, возвращаем команду по умолчанию для поиска
+        if not self.api_key:
+            print("⚠️  API ключ отсутствует, использую режим поиска по умолчанию")
+            return json.dumps({
+                "command": "search_components",
+                "args": {},
+                "explanation": "Поиск компонентов в локальной базе данных"
+            })
+        
         url = "https://openrouter.ai/api/v1/chat/completions"
         
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
-            "HTTP-Referer": "http://localhost:8000",
-            "X-Title": "Component Library"
+            "HTTP-Referer": self.app_url,
+            "X-Title": self.app_name
         }
         
         data = {
             "model": self.model,
             "messages": [
-                {"role": "system", "content": "Ты возвращаешь только валидный JSON. Не добавляй пояснений, только JSON."},
+                {
+                    "role": "system", 
+                    "content": "Ты возвращаешь только валидный JSON без пояснений. ВСЕГДА используй формат: {\"command\": \"...\", \"args\": {...}, \"explanation\": \"...\"}"
+                },
                 {"role": "user", "content": prompt}
             ],
             "temperature": 0.1,
@@ -108,165 +173,270 @@ JSON ответ:"""
         }
         
         try:
-            print(f"🤖 Запрос к модели {self.model}...")
+            print(f"🤖 Запрос к {self.model}...")
             response = requests.post(url, headers=headers, json=data, timeout=30)
             response.raise_for_status()
             
             result = response.json()
-            content = result["choices"][0]["message"]["content"]
-            
-            if not content:
-                raise ValueError("Пустой ответ от модели")
+            content = result["choices"][0]["message"]["content"].strip()
             
             print(f"✅ Получен ответ: {content[:100]}...")
             return content
             
-        except requests.exceptions.RequestException as e:
-            print(f"❌ Ошибка сети при запросе к OpenRouter: {e}")
-            if hasattr(e, 'response') and e.response:
-                print(f"   Статус: {e.response.status_code}")
-                print(f"   Ответ: {e.response.text[:200]}")
-            return json.dumps({"error": f"Ошибка сети: {e}", "command": "search_components", "args": {}, "explanation": "Ошибка соединения с ИИ"})
         except Exception as e:
-            print(f"❌ Ошибка в ask_openrouter: {e}")
-            return json.dumps({"error": str(e), "command": "search_components", "args": {}, "explanation": "Ошибка модели"})
+            print(f"❌ Ошибка OpenRouter: {e}")
+            return json.dumps({
+                "command": "search_components", 
+                "args": {}, 
+                "explanation": f"Ошибка ИИ, выполнен поиск по умолчанию"
+            })
     
     def parse_command(self, json_response: str) -> Dict:
-        """Парсинг JSON ответа"""
+        """Парсинг JSON ответа от ИИ"""
         try:
-            cleaned = json_response.strip()
+            # Убираем возможные markdown и лишние символы
+            json_response = json_response.strip()
+            if json_response.startswith("```json"):
+                json_response = json_response[7:]
+            if json_response.endswith("```"):
+                json_response = json_response[:-3]
+            if json_response.startswith("```"):
+                json_response = json_response[3:]
             
-            if cleaned.startswith("```json"):
-                cleaned = cleaned[7:]
-            elif cleaned.startswith("```"):
-                cleaned = cleaned[3:]
+            data = json.loads(json_response)
             
-            if cleaned.endswith("```"):
-                cleaned = cleaned[:-3]
+            # Проверяем обязательные поля
+            if "command" not in data:
+                data["command"] = "search_components"
+            if "args" not in data:
+                data["args"] = {}
+            if "explanation" not in data:
+                data["explanation"] = "Поиск компонентов"
             
-            cleaned = cleaned.strip()
-            
-            parsed = json.loads(cleaned)
-            
-            if not isinstance(parsed, dict):
-                raise ValueError("Ответ не является объектом JSON")
-            
-            if "command" not in parsed:
-                parsed["command"] = "search_components"
-            
-            if "args" not in parsed:
-                parsed["args"] = {}
-            
-            if "explanation" not in parsed:
-                parsed["explanation"] = "Выполняю запрос"
-            
-            print(f"✅ Команда распознана: {parsed['command']}")
-            print(f"   Аргументы: {parsed['args']}")
-            
-            return parsed
+            return data
             
         except json.JSONDecodeError as e:
             print(f"❌ Ошибка парсинга JSON: {e}")
-            print(f"   Сырой ответ: {json_response[:200]}")
-            return {"command": "search_components", "args": {}, "explanation": "Не удалось распознать запрос"}
+            print(f"Ответ ИИ: {json_response[:200]}")
+            
+            # Попробуем извлечь JSON из текста
+            import re
+            json_pattern = r'\{.*\}'
+            matches = re.findall(json_pattern, json_response, re.DOTALL)
+            
+            if matches:
+                try:
+                    data = json.loads(matches[0])
+                    return data
+                except:
+                    pass
+            
+            # Возвращаем команду по умолчанию
+            return {
+                "command": "search_components",
+                "args": {},
+                "explanation": "Поиск компонентов по запросу пользователя"
+            }
         except Exception as e:
-            print(f"❌ Другая ошибка при парсинге: {e}")
-            return {"command": "search_components", "args": {}, "explanation": "Ошибка обработки запроса"}
+            print(f"❌ Ошибка обработки ответа ИИ: {e}")
+            return {
+                "command": "search_components",
+                "args": {},
+                "explanation": "Поиск компонентов"
+            }
     
     def execute_command(self, command_data: Dict) -> Dict:
-        """Выполнение команды на локальном сервере"""
+        """Выполнение команды на сервере с улучшенной обработкой ошибок"""
+        # Защита от None
+        if not command_data:
+            command_data = {
+                "command": "search_components",
+                "args": {},
+                "explanation": "Поиск компонентов"
+            }
+        
         command = command_data.get("command", "search_components")
         args = command_data.get("args", {})
         
         try:
             print(f"\n🔧 Выполняю команду: {command}")
-            print(f"   Аргументы: {args}")
+            print(f"📝 Аргументы: {args}")
             
             if command == "search_components":
-                # Подготавливаем параметры для API
-                params = {}
-                for key, value in args.items():
-                    if value is not None:
-                        params[key] = value
+                params = {k: v for k, v in args.items() if v is not None and v != ""}
                 
-                # Исправляем типы данных
-                for float_key in ['Imax_min', 'Imax_max', 'Uce_min', 'Uce_max', 'Ptot_min', 'Ptot_max']:
-                    if float_key in params:
+                # 🔧 ПРЕОБРАЗОВАНИЕ ТИПОВ ДЛЯ API
+                for key in ['Imax_min', 'Imax_max', 'Uce_min', 'Uce_max', 'Ptot_min', 'Ptot_max']:
+                    if key in params:
                         try:
-                            params[float_key] = float(params[float_key])
+                            params[key] = float(params[key])
                         except (ValueError, TypeError):
-                            del params[float_key]
+                            # Если не удалось преобразовать, удаляем параметр
+                            params.pop(key, None)
                 
-                print(f"📤 Отправляю запрос с параметрами: {params}")
+                # 🔧 ИСПРАВЛЕНИЕ: Используем /api/components вместо /components
+                url = f"{self.base_url}/api/components"
+                print(f"🌐 Запрос к: {url}")
+                print(f"📊 Параметры: {params}")
                 
-                url = f"{self.base_url}/components"
-                print(f"🌐 URL запроса: {url}")
+                response = requests.get(url, params=params, timeout=15)
+                print(f"📡 Код ответа: {response.status_code}")
+                print(f"📄 Заголовки ответа: {response.headers.get('content-type', 'unknown')}")
                 
-                response = requests.get(url, params=params, timeout=10)
-                print(f"📥 Статус ответа: {response.status_code}")
-                
-                if response.status_code != 200:
-                    return {"error": f"Ошибка сервера: {response.status_code}", "details": response.text[:200]}
-                
-                return response.json()
+                if response.status_code == 200:
+                    # Проверяем, что ответ JSON
+                    content_type = response.headers.get('content-type', '')
+                    if 'application/json' in content_type:
+                        result = response.json()
+                        print(f"✅ Получено {result.get('count', 0)} компонентов")
+                        return result
+                    else:
+                        print(f"⚠️  Ответ не JSON: {response.text[:200]}")
+                        # Попробуем распарсить как JSON, даже если заголовок неправильный
+                        try:
+                            result = response.json()
+                            print(f"✅ Получено {result.get('count', 0)} компонентов (парсинг несмотря на заголовок)")
+                            return result
+                        except:
+                            # Если не удалось распарсить, возвращаем ошибку
+                            return {
+                                "success": False,
+                                "error": "Сервер вернул не JSON данные",
+                                "details": f"Content-Type: {content_type}, первые 200 символов: {response.text[:200]}"
+                            }
+                else:
+                    print(f"❌ Ошибка API: {response.status_code}")
+                    print(f"Текст ошибки: {response.text[:200]}")
+                    return {
+                        "success": False,
+                        "error": f"Ошибка API: {response.status_code}",
+                        "details": response.text[:200]
+                    }
             
             elif command in ["get_component_details", "get_characteristics"]:
                 component_id = args.get("component_id")
                 if not component_id:
-                    return {"error": "Не указан ID компонента"}
+                    return {
+                        "success": False,
+                        "error": "Не указан ID компонента"
+                    }
                 
                 if command == "get_component_details":
-                    url = f"{self.base_url}/components/{component_id}"
+                    url = f"{self.base_url}/api/components/{component_id}"
                 else:
-                    url = f"{self.base_url}/components/{component_id}/characteristics"
+                    url = f"{self.base_url}/api/components/{component_id}/characteristics"
                 
-                print(f"🌐 URL запроса: {url}")
-                response = requests.get(url, timeout=10)
-                print(f"📥 Статус ответа: {response.status_code}")
+                print(f"🌐 Запрос к: {url}")
                 
-                if response.status_code != 200:
-                    return {"error": f"Ошибка сервера: {response.status_code}", "details": response.text[:200]}
+                response = requests.get(url, timeout=15)
                 
-                return response.json()
+                if response.status_code == 200:
+                    result = response.json()
+                    
+                    # Для характеристики добавляем ID компонента
+                    if command == "get_characteristics":
+                        result = {
+                            "component_id": component_id,
+                            "characteristics": result.get("characteristics", [])
+                        }
+                    
+                    return result
+                else:
+                    return {
+                        "success": False,
+                        "error": f"Ошибка {response.status_code}",
+                        "details": response.text[:200]
+                    }
             
-            else:
-                return {"error": f"Неизвестная команда: {command}", "available_commands": list(self.library_schema["available_commands"].keys())}
+            return {
+                "success": False,
+                "error": f"Неизвестная команда: {command}"
+            }
             
-        except requests.exceptions.ConnectionError:
-            print(f"❌ Ошибка соединения с сервером {self.base_url}")
-            return {"error": "Сервер библиотеки недоступен. Убедитесь, что web_app.py запущен на localhost:8000"}
-        except requests.exceptions.Timeout:
-            return {"error": "Таймаут при запросе к серверу"}
+        except requests.exceptions.ConnectionError as e:
+            print(f"❌ Ошибка подключения: {e}")
+            return {
+                "success": False,
+                "error": f"Сервер недоступен: {self.base_url}",
+                "details": str(e)
+            }
         except Exception as e:
-            print(f"❌ Ошибка в execute_command: {type(e).__name__}: {e}")
-            return {"error": f"Ошибка выполнения: {str(e)}"}
+            print(f"❌ Ошибка выполнения: {e}")
+            import traceback
+            traceback.print_exc()
+            return {
+                "success": False,
+                "error": f"Ошибка выполнения: {str(e)}",
+                "details": traceback.format_exc()
+            }
     
     def process_query(self, user_question: str) -> Dict:
-        """Основная обработка запроса"""
-        print(f"\n" + "="*60)
-        print(f"📝 Вопрос пользователя: '{user_question}'")
-        print("="*60)
+        """Основной метод обработки запроса пользователя"""
+        try:
+            print(f"\n🎯 Обрабатываю запрос: '{user_question}'")
+            
+            # Создаем промпт
+            prompt = self.create_prompt(user_question)
+            print(f"📝 Промпт создан ({len(prompt)} символов)")
+            
+            # Запрашиваем ответ у ИИ
+            json_response = self.ask_openrouter(prompt)
+            print(f"🤖 Ответ ИИ получен")
+            
+            # Парсим команду
+            command_data = self.parse_command(json_response)
+            print(f"📋 Команда: {command_data.get('command')}")
+            print(f"💡 Объяснение: {command_data.get('explanation')}")
+            
+            # Выполняем команду
+            result = self.execute_command(command_data)
+            print(f"✅ Результат получен")
+            
+            # Формируем финальный ответ
+            response = {
+                "success": True,
+                "command": command_data,
+                "result": result
+            }
+            
+            # Если результат содержит ошибку, помечаем как неуспешный
+            if isinstance(result, dict) and result.get("success") is False:
+                response["success"] = False
+                response["error"] = result.get("error", "Неизвестная ошибка")
+            
+            return response
+            
+        except Exception as e:
+            print(f"❌ Критическая ошибка в process_query: {e}")
+            import traceback
+            traceback.print_exc()
+            
+            return {
+                "success": False,
+                "error": f"Внутренняя ошибка: {str(e)}",
+                "details": traceback.format_exc()
+            }
+
+# 🔧 АВТОТЕСТ ПРИ ЗАПУСКЕ
+if __name__ == "__main__":
+    print("🧪 Тестирование brain.py...")
+    try:
+        brain = ComponentLibraryBrain()
+        print("✅ Brain инициализирован успешно")
+        print(f"   Модель: {brain.model}")
+        print(f"   Базовый URL: {brain.base_url}")
         
-        # Создаем промпт для ИИ
-        prompt = self.create_prompt(user_question)
+        # Тестовый запрос
+        test_query = "Найди советские транзисторы"
+        print(f"\n🧪 Тестовый запрос: '{test_query}'")
         
-        # Запрашиваем у OpenRouter
-        json_response = self.ask_openrouter(prompt)
+        result = brain.process_query(test_query)
+        print(f"🎯 Результат: успех={result.get('success')}")
         
-        # Парсим ответ
-        command_data = self.parse_command(json_response)
-        
-        # Выполняем команду
-        result = self.execute_command(command_data)
-        
-        # Формируем итоговый ответ
-        response = {
-            "user_question": user_question,
-            "command": command_data,
-            "result": result,
-            "success": "error" not in result
-        }
-        
-        print(f"\n✅ Обработка завершена. Успех: {response['success']}")
-        
-        return response
+        if result.get("success"):
+            print(f"📊 Найдено компонентов: {result.get('result', {}).get('count', 0)}")
+        else:
+            print(f"❌ Ошибка: {result.get('error')}")
+            
+    except Exception as e:
+        print(f"❌ Ошибка инициализации: {e}")
