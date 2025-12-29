@@ -1,87 +1,1233 @@
 [
   {
+    "id": "PP_5K_25W",
+    "name": "Output transformer 5kΩ:8Ω 25W",
+    "type": "transformer_output",
+    "origin": "generic",
+    "application_tags": [
+      "output_stage", "single_ended", "tube_amplifier", "impedance_matching"
+    ],
+    "technology_tags": [
+      "passive", "audio", "low_frequency", "electromagnetic"
+    ],
+    "role_tags": [
+      "load_transformer", "impedance_matcher", "dc_blocker", "power_transformer"
+    ],
+    "classification": {
+      "function": ["output"],
+      "frequency_range": ["LF"],
+      "application": ["audio", "tube_amplifier"],
+      "mounting": ["chassis", "through_hole_pcb"]
+    },
+    "params": {
+      "primary_impedance": 5000,
+      "secondary_impedance": [4, 8, 16],
+      "power_rating": 25,
+      "frequency_response": [20, 20000],
+      "primary_resistance": 180,
+      "secondary_resistance": 0.8,
+      "primary_inductance": 18,
+      "leakage_inductance": 0.025
+    },
+    "parameters_extended": {
+      "electrical": {
+        "voltage_ratings": {
+          "primary_max": 500,
+          "insulation_voltage": 1500
+        },
+        "current_ratings": {
+          "primary_max": 0.1,
+          "secondary_max": 1.77
+        },
+        "frequency_characteristics": {
+          "bandwidth": 20000,
+          "low_frequency_cutoff": 20,
+          "high_frequency_cutoff": 20000
+        }
+      },
+      "thermal": {
+        "max_temperature": 105
+      },
+      "mechanical": {
+        "core_material": "M6_silicon_steel",
+        "core_size": "EI96",
+        "core_type": "lamination",
+        "winding_material": "copper"
+      },
+      "package": {
+        "type": "chassis_mount",
+        "mounting_holes": "4x5mm",
+        "dimensions": "96x80x65mm",
+        "weight": 2.5
+      }
+    },
+    "wiring": {
+      "primary": ["B+", "Plate", "UL_Tap"],
+      "secondary": ["0", "4Ω", "8Ω", "16Ω"]
+    },
+    "characteristics_file": "characteristics/pp_5k_25w_response.txt",
+    "datasheet_url": "https://example.com/datasheets/pp_5k_25w.pdf",
+    "pinout_image": "images/pinouts/transformer_output.png",
+    "description": "Output transformer for single-ended tube amplifiers. Suitable for EL34, 6L6, KT88 in single-ended configuration.",
+    "analogues": ["OPT-25W-5K", "SE-25-5K"],
+    "substitutes": ["PP_3K5_20W", "PP_5K_30W"],
+    "circuit_examples": [
+      {
+        "name": "Single-ended EL34 amplifier",
+        "schematic": "circuits/el34_se_amplifier.png",
+        "components": ["EL34", "PP_5K_25W", "12AX7", "470Ω_resistor", "100µF_capacitor"],
+        "power_output": 8,
+        "bandwidth": "15Hz-35kHz"
+      }
+    ]
+  },
+  {
     "id": "2N3904",
     "name": "NPN Silicon Transistor",
-    "type": "bjt",
-	"origin": "usa",
-    "params": {"Imax": 0.2, "Uce_max": 40, "Ptot": 0.625},
+    "type": "bjt_npn",
+    "origin": "usa",
+    "application_tags": [
+      "amplification", "switching", "general_purpose", "driver"
+    ],
+    "technology_tags": [
+      "silicon", "bipolar", "through_hole", "low_power"
+    ],
+    "role_tags": [
+      "amplifier", "switch", "driver", "buffer"
+    ],
+    "classification": {
+      "function": ["preamp", "driver", "switch", "oscillator"],
+      "frequency_range": ["MF", "HF"],
+      "amplifier_class": ["A", "B", "C"],
+      "application": ["audio", "RF", "switching", "logic"],
+      "mounting": ["through_hole", "surface_mount"]
+    },
+    "params": {
+      "max_collector_current": 0.2,
+      "max_collector_emitter_voltage": 40,
+      "max_power_dissipation": 0.625,
+      "current_gain_min": 100,
+      "current_gain_max": 300
+    },
+    "parameters_extended": {
+      "electrical": {
+        "voltage_ratings": {
+          "vceo": 40,
+          "vcbo": 60,
+          "vebo": 6,
+          "typical": 20
+        },
+        "current_ratings": {
+          "ic_max": 0.2,
+          "ib_max": 0.05,
+          "typical": 0.1,
+          "surge": 0.5
+        },
+        "frequency_characteristics": {
+          "ft": 300,
+          "fmax": 200,
+          "bandwidth": 100,
+          "cobo": 4.5,
+          "cie": 4
+        }
+      },
+      "thermal": {
+        "tj_max": 150,
+        "rth_jc": 83.3,
+        "rth_ja": 200
+      },
+      "package": {
+        "type": "TO-92",
+        "pins": 3,
+        "dimensions": "4.95x4.95x4.95mm",
+        "pinout": "EBC"
+      }
+    },
     "characteristics_file": "characteristics/2n3904_output.txt",
-    "description": "General purpose NPN transistor"
+    "datasheet_url": "https://example.com/datasheets/2n3904.pdf",
+    "pinout_image": "images/pinouts/2n3904.png",
+    "description": "General purpose NPN silicon transistor, suitable for amplification and switching applications.",
+    "analogues": ["BC547", "2N2222", "KT315"],
+    "substitutes": ["2N4401", "BC337", "PN2222"],
+    "mounting": "through_hole",
+    "case": "TO-92",
+    "manufacturer": ["Fairchild", "ON Semiconductor", "STMicroelectronics"],
+    "circuit_examples": [
+      {
+        "name": "Common emitter amplifier",
+        "schematic": "circuits/2n3904_common_emitter.png",
+        "components": ["2N3904", "10k_resistor", "1k_resistor", "10µF_capacitor"],
+        "gain": 100,
+        "bandwidth": "100Hz-100kHz"
+      }
+    ]
   },
   {
     "id": "KT315",
     "name": "КТ315 (NPN germanium transistor)",
-    "type": "bjt", 
-	"origin": "soviet",
-    "params": {"Imax": 0.1, "Uce_max": 20, "Ptot": 0.3},
+    "type": "bjt_npn",
+    "origin": "soviet",
+    "application_tags": [
+      "amplification", "switching", "audio", "RF"
+    ],
+    "technology_tags": [
+      "germanium", "bipolar", "through_hole", "low_noise"
+    ],
+    "role_tags": [
+      "amplifier", "switch", "rf_amplifier", "preamp"
+    ],
+    "classification": {
+      "function": ["preamp", "driver", "oscillator", "mixer"],
+      "frequency_range": ["LF", "MF", "HF"],
+      "amplifier_class": ["A"],
+      "application": ["audio", "RF", "radio", "instrumentation"],
+      "mounting": ["through_hole"]
+    },
+    "params": {
+      "max_collector_current": 0.1,
+      "max_collector_emitter_voltage": 20,
+      "max_power_dissipation": 0.3,
+      "current_gain_min": 20,
+      "current_gain_max": 120
+    },
+    "parameters_extended": {
+      "electrical": {
+        "voltage_ratings": {
+          "vceo": 20,
+          "vcbo": 30,
+          "vebo": 5,
+          "typical": 12
+        },
+        "current_ratings": {
+          "ic_max": 0.1,
+          "ib_max": 0.02,
+          "typical": 0.05,
+          "surge": 0.2
+        },
+        "frequency_characteristics": {
+          "ft": 250,
+          "fmax": 150,
+          "bandwidth": 50,
+          "cobo": 8,
+          "cie": 10
+        }
+      },
+      "thermal": {
+        "tj_max": 85,
+        "rth_jc": 100,
+        "rth_ja": 250
+      },
+      "package": {
+        "type": "KT-26",
+        "pins": 3,
+        "dimensions": "5.5x5.5x3.5mm",
+        "pinout": "EBC"
+      }
+    },
     "characteristics_file": "characteristics/kt315_output.txt",
-    "description": "Soviet NPN germanium transistor"
+    "datasheet_url": "https://example.com/datasheets/kt315.pdf",
+    "pinout_image": "images/pinouts/kt315.png",
+    "description": "Soviet NPN germanium transistor, widely used in consumer electronics and radio equipment.",
+    "analogues": ["2N3904", "BC547", "AC128"],
+    "substitutes": ["KT3102", "KT312", "KT342"],
+    "mounting": "through_hole",
+    "case": "KT-26",
+    "manufacturer": ["Foton", "Kvazar", "Mikron"]
   },
   {
     "id": "KT361",
     "name": "КТ361 (PNP germanium transistor)",
-    "type": "bjt",
-	"origin": "soviet",
-    "params": {"Imax": 0.1, "Uce_max": 20, "Ptot": 0.3},
-    "characteristics_file": "characteristics/kt361_output.txt", 
-    "description": "Soviet PNP germanium transistor"
+    "type": "bjt_pnp",
+    "origin": "soviet",
+    "application_tags": ["amplification", "switching", "audio", "RF"],
+    "technology_tags": ["germanium", "bipolar", "through_hole", "low_noise"],
+    "role_tags": ["amplifier", "switch", "rf_amplifier", "preamp"],
+    "classification": {
+      "function": ["preamp", "driver", "output", "switch"],
+      "frequency_range": ["LF", "MF", "HF"],
+      "amplifier_class": ["A", "AB"],
+      "application": ["audio", "RF", "radio", "instrumentation"],
+      "mounting": ["through_hole"]
+    },
+    "params": {
+      "max_collector_current": 0.1,
+      "max_collector_emitter_voltage": 20,
+      "max_power_dissipation": 0.3,
+      "current_gain_min": 20,
+      "current_gain_max": 120
+    },
+    "parameters_extended": {
+      "electrical": {
+        "voltage_ratings": {
+          "vceo": 20,
+          "vcbo": 30,
+          "vebo": 5,
+          "typical": 12
+        },
+        "current_ratings": {
+          "ic_max": 0.1,
+          "ib_max": 0.02,
+          "typical": 0.05,
+          "surge": 0.2
+        },
+        "frequency_characteristics": {
+          "ft": 250,
+          "fmax": 150,
+          "bandwidth": 50,
+          "cobo": 8,
+          "cie": 10
+        }
+      },
+      "thermal": {
+        "tj_max": 85,
+        "rth_jc": 100,
+        "rth_ja": 250
+      },
+      "package": {
+        "type": "KT-26",
+        "pins": 3,
+        "dimensions": "5.5x5.5x3.5mm",
+        "pinout": "EBC"
+      }
+    },
+    "characteristics_file": "characteristics/kt361_output.txt",
+    "datasheet_url": "https://example.com/datasheets/kt361.pdf",
+    "pinout_image": "images/pinouts/kt361.png",
+    "description": "Soviet PNP germanium transistor, complement to KT315.",
+    "analogues": ["2N3906", "BC557", "AC127"],
+    "substitutes": ["KT3107", "KT361B", "KT361V"],
+    "mounting": "through_hole",
+    "case": "KT-26",
+    "manufacturer": ["Foton", "Kvazar", "Mikron"]
   },
   {
     "id": "IRFZ44N",
     "name": "N-Channel MOSFET",
-    "type": "mosfet",
-	"origin": "usa",
-    "params": {"Imax": 35, "Uce_max": 55, "Ptot": 94},
+    "type": "mosfet_n_channel",
+    "origin": "usa",
+    "application_tags": ["switching", "power", "motor_control", "regulator"],
+    "technology_tags": ["mosfet", "silicon", "through_hole", "power"],
+    "role_tags": ["switch", "power_switch", "amplifier", "regulator"],
+    "classification": {
+      "function": ["switch", "power_switch", "amplifier"],
+      "frequency_range": ["LF", "MF"],
+      "amplifier_class": ["D"],
+      "application": ["switching", "power", "motor_control"],
+      "mounting": ["through_hole"]
+    },
+    "params": {
+      "max_drain_current": 35,
+      "max_drain_source_voltage": 55,
+      "max_power_dissipation": 94,
+      "on_resistance": 0.022
+    },
+    "parameters_extended": {
+      "electrical": {
+        "voltage_ratings": {
+          "vds_max": 55,
+          "vgs_max": 20,
+          "typical": 30
+        },
+        "current_ratings": {
+          "id_max": 35,
+          "id_pulse": 140,
+          "typical": 20
+        },
+        "frequency_characteristics": {
+          "switching_speed": 50,
+          "input_capacitance": 1700,
+          "output_capacitance": 350
+        }
+      },
+      "thermal": {
+        "tj_max": 175,
+        "rth_jc": 1.4,
+        "rth_ja": 62
+      },
+      "package": {
+        "type": "TO-220",
+        "pins": 3,
+        "dimensions": "10.4x15.9x4.6mm",
+        "pinout": "GDS"
+      }
+    },
     "characteristics_file": "characteristics/irfz44n_output.txt",
-    "description": "Power MOSFET"
+    "datasheet_url": "https://example.com/datasheets/irfz44n.pdf",
+    "pinout_image": "images/pinouts/irfz44n.png",
+    "description": "Power MOSFET, 55V 35A, low on-resistance.",
+    "analogues": ["IRF3205", "IRF540N", "STP55NF06"],
+    "substitutes": ["IRFZ44", "IRFZ44NS", "IRFZ44NL"],
+    "mounting": "through_hole",
+    "case": "TO-220",
+    "manufacturer": ["Infineon", "International Rectifier", "Vishay"]
   },
   {
     "id": "IRF540N",
     "name": "N-Channel MOSFET",
-    "type": "mosfet",
-	"origin": "usa",
-    "params": {"Imax": 33, "Uce_max": 100, "Ptot": 130},
+    "type": "mosfet_n_channel",
+    "origin": "usa",
+    "application_tags": ["switching", "power", "motor_control", "audio"],
+    "technology_tags": ["mosfet", "silicon", "through_hole", "power"],
+    "role_tags": ["switch", "power_switch", "amplifier"],
+    "classification": {
+      "function": ["switch", "power_switch", "amplifier"],
+      "frequency_range": ["LF", "MF"],
+      "amplifier_class": ["D"],
+      "application": ["switching", "power", "audio"],
+      "mounting": ["through_hole"]
+    },
+    "params": {
+      "max_drain_current": 33,
+      "max_drain_source_voltage": 100,
+      "max_power_dissipation": 130,
+      "on_resistance": 0.044
+    },
+    "parameters_extended": {
+      "electrical": {
+        "voltage_ratings": {
+          "vds_max": 100,
+          "vgs_max": 20,
+          "typical": 50
+        },
+        "current_ratings": {
+          "id_max": 33,
+          "id_pulse": 132,
+          "typical": 20
+        }
+      },
+      "thermal": {
+        "tj_max": 175,
+        "rth_jc": 0.83,
+        "rth_ja": 62
+      },
+      "package": {
+        "type": "TO-220",
+        "pins": 3,
+        "dimensions": "10.4x15.9x4.6mm",
+        "pinout": "GDS"
+      }
+    },
     "characteristics_file": "characteristics/irf540n_output.txt",
-    "description": "Power MOSFET, 100V 33A"
+    "datasheet_url": "https://example.com/datasheets/irf540n.pdf",
+    "pinout_image": "images/pinouts/irf540n.png",
+    "description": "Power MOSFET, 100V 33A, suitable for audio amplifiers and motor control.",
+    "analogues": ["IRF640", "IRF740", "STP55NF06L"],
+    "substitutes": ["IRF540", "IRF540NS", "IRF540NL"],
+    "mounting": "through_hole",
+    "case": "TO-220",
+    "manufacturer": ["Infineon", "International Rectifier", "Vishay"]
   },
   {
     "id": "IRFP4668",
     "name": "N-Channel MOSFET, 200V 130A",
-    "type": "mosfet",
-	"origin": "usa",
+    "type": "mosfet_n_channel",
+    "origin": "usa",
+    "application_tags": ["power", "switching", "motor_control", "industrial"],
+    "technology_tags": ["mosfet", "silicon", "through_hole", "high_power"],
+    "role_tags": ["power_switch", "amplifier", "regulator"],
+    "classification": {
+      "function": ["power_switch", "amplifier"],
+      "frequency_range": ["LF"],
+      "amplifier_class": ["D"],
+      "application": ["power", "industrial", "motor_control"],
+      "mounting": ["through_hole"]
+    },
     "params": {
-      "Imax": 130,
-      "Uce_max": 200,
-      "Ptot": 520
+      "max_drain_current": 130,
+      "max_drain_source_voltage": 200,
+      "max_power_dissipation": 520,
+      "on_resistance": 0.009
+    },
+    "parameters_extended": {
+      "electrical": {
+        "voltage_ratings": {
+          "vds_max": 200,
+          "vgs_max": 20,
+          "typical": 100
+        },
+        "current_ratings": {
+          "id_max": 130,
+          "id_pulse": 520,
+          "typical": 80
+        }
+      },
+      "thermal": {
+        "tj_max": 175,
+        "rth_jc": 0.24,
+        "rth_ja": 40
+      },
+      "package": {
+        "type": "TO-247",
+        "pins": 3,
+        "dimensions": "15.7x20.8x4.6mm",
+        "pinout": "GDS"
+      }
     },
     "characteristics_file": "characteristics/irfp4668_output.txt",
-    "description": "Очень мощный полевой транзистор"
+    "datasheet_url": "https://example.com/datasheets/irfp4668.pdf",
+    "pinout_image": "images/pinouts/irfp4668.png",
+    "description": "Very powerful MOSFET, 200V 130A, for high-power applications.",
+    "analogues": ["IRFP4468", "IRFP4668PBF", "STW77N65M5"],
+    "substitutes": ["IRFP4668PbF", "IRFP4668L", "IRFP4668-EP"],
+    "mounting": "through_hole",
+    "case": "TO-247",
+    "manufacturer": ["Infineon", "International Rectifier"]
   },
   {
     "id": "12AX7",
-    "name": "12AX7 Dual Triode", 
-    "type": "vacuum_tube",
-	"origin": "usa",
-    "params": {"Imax": 0.012, "Uce_max": 300, "Ptot": 2.75},
+    "name": "12AX7 Dual Triode",
+    "type": "vacuum_tube_dual_triode",
+    "origin": "usa",
+    "application_tags": ["audio", "preamplifier", "gain_stage", "instrument", "hi_fi"],
+    "technology_tags": ["vacuum_tube", "audio", "low_noise", "high_gain"],
+    "role_tags": ["preamplifier", "voltage_amplifier", "phase_splitter", "driver"],
+    "classification": {
+      "function": ["preamp", "driver", "phase_splitter"],
+      "frequency_range": ["LF"],
+      "amplifier_class": ["A"],
+      "application": ["audio", "instrument", "hi_fi", "guitar_amplifier"],
+      "mounting": ["socket", "chassis"]
+    },
+    "params": {
+      "plate_voltage_max": 300,
+      "plate_dissipation": 1.2,
+      "filament_voltage": 6.3,
+      "filament_current": 0.3,
+      "amplification_factor": 100,
+      "transconductance": 1.6
+    },
+    "operating_points": [
+      {
+        "name": "Typical preamp",
+        "plate_voltage": 250,
+        "grid_voltage": -2,
+        "plate_current": 1.2,
+        "gain": 70
+      }
+    ],
+    "parameters_extended": {
+      "electrical": {
+        "voltage_ratings": {
+          "max": 300,
+          "typical": 250,
+          "breakdown": 350
+        },
+        "current_ratings": {
+          "max": 0.012,
+          "typical": 0.0012,
+          "surge": 0.02
+        },
+        "frequency_characteristics": {
+          "bandwidth": 100000,
+          "low_frequency_response": 10,
+          "high_frequency_response": 50000
+        }
+      },
+      "thermal": {
+        "heater_warmup": 30,
+        "max_envelope_temp": 200
+      },
+      "package": {
+        "type": "octal",
+        "pins": 9,
+        "dimensions": "22.2x51mm",
+        "base_type": "noval"
+      }
+    },
     "characteristics_file": "characteristics/12ax7_plate.txt",
-    "description": "Dual triode vacuum tube for audio amplification"
+    "datasheet_url": "https://example.com/datasheets/12ax7.pdf",
+    "pinout_image": "images/pinouts/12ax7.png",
+    "description": "Dual triode vacuum tube for audio amplification, known for high gain and low noise. Widely used in guitar amplifiers and hi-fi equipment.",
+    "analogues": ["ECC83", "6N2P", "7025"],
+    "substitutes": ["12AT7", "12AU7", "12AY7"],
+    "mounting": "octal",
+    "envelope": "GT",
+    "manufacturer": ["RCA", "GE", "Sylvania", "JJ Electronic"],
+    "circuit_examples": [
+      {
+        "name": "Common cathode preamp",
+        "schematic": "circuits/12ax7_common_cathode.png",
+        "components": ["12AX7", "100k_resistor", "1uF_capacitor", "1.5k_resistor"],
+        "gain": 60,
+        "bandwidth": "20Hz-20kHz"
+      }
+    ]
   },
   {
     "id": "6N2P",
     "name": "6Н2П (Soviet double triode)",
-    "type": "vacuum_tube",
-	"origin": "soviet",
-    "params": {"Imax": 0.008, "Uce_max": 250, "Ptot": 1.0},
+    "type": "vacuum_tube_dual_triode",
+    "origin": "soviet",
+    "application_tags": ["audio", "preamplifier", "soviet", "radio"],
+    "technology_tags": ["vacuum_tube", "soviet", "dual_triode", "audio"],
+    "role_tags": ["preamplifier", "amplifier", "driver"],
+    "classification": {
+      "function": ["preamp", "driver"],
+      "frequency_range": ["LF"],
+      "amplifier_class": ["A"],
+      "application": ["audio", "radio", "instrumentation"],
+      "mounting": ["socket", "chassis"]
+    },
+    "params": {
+      "plate_voltage_max": 250,
+      "plate_dissipation": 1.0,
+      "filament_voltage": 6.3,
+      "filament_current": 0.34,
+      "amplification_factor": 97.5,
+      "transconductance": 2.1
+    },
+    "operating_points": [
+      {
+        "name": "Typical",
+        "plate_voltage": 200,
+        "grid_voltage": -1.5,
+        "plate_current": 1.0,
+        "gain": 65
+      }
+    ],
+    "parameters_extended": {
+      "electrical": {
+        "voltage_ratings": {
+          "max": 250,
+          "typical": 200,
+          "breakdown": 300
+        },
+        "current_ratings": {
+          "max": 0.008,
+          "typical": 0.001,
+          "surge": 0.015
+        }
+      },
+      "thermal": {
+        "heater_warmup": 25,
+        "max_envelope_temp": 180
+      },
+      "package": {
+        "type": "octal",
+        "pins": 9,
+        "dimensions": "22.2x51mm",
+        "base_type": "octal"
+      }
+    },
     "characteristics_file": "characteristics/6n2p_output.txt",
-    "description": "Soviet double triode, analog of 12AX7"
+    "datasheet_url": "https://example.com/datasheets/6n2p.pdf",
+    "pinout_image": "images/pinouts/6n2p.png",
+    "description": "Soviet double triode, analog of 12AX7/ECC83.",
+    "analogues": ["12AX7", "ECC83", "6N2P-EV"],
+    "substitutes": ["6N2P-E", "6N2P-V", "6N2P-I"],
+    "mounting": "octal",
+    "envelope": "GT",
+    "manufacturer": ["Foton", "Reflektor", "Svetlana"]
   },
   {
     "id": "1N4148",
     "name": "Fast Switching Diode",
-    "type": "diode",
-	"origin": "usa",
-    "params": {"Imax": 0.2, "Uce_max": 100, "Ptot": 0.5},
+    "type": "diode_switching",
+    "origin": "usa",
+    "application_tags": ["switching", "fast_recovery", "general_purpose", "protection"],
+    "technology_tags": ["silicon", "fast_switching", "through_hole", "small_signal"],
+    "role_tags": ["switch", "clamp", "protection", "rectifier"],
+    "classification": {
+      "function": ["switch", "clamp", "protection"],
+      "frequency_range": ["LF", "MF", "HF"],
+      "application": ["switching", "protection", "logic"],
+      "mounting": ["through_hole", "surface_mount"]
+    },
+    "params": {
+      "max_forward_current": 0.2,
+      "max_reverse_voltage": 100,
+      "max_power_dissipation": 0.5,
+      "forward_voltage": 1.0,
+      "reverse_recovery_time": 4
+    },
+    "parameters_extended": {
+      "electrical": {
+        "voltage_ratings": {
+          "vrrm": 100,
+          "vrm": 75,
+          "typical": 50
+        },
+        "current_ratings": {
+          "if_avg": 0.2,
+          "if_surge": 1.0,
+          "typical": 0.1
+        }
+      },
+      "thermal": {
+        "tj_max": 175,
+        "rth_ja": 200
+      },
+      "package": {
+        "type": "DO-35",
+        "pins": 2,
+        "dimensions": "4.1x1.9mm",
+        "pinout": "AK"
+      }
+    },
     "characteristics_file": "characteristics/1n4148_output.txt",
-    "description": "Fast switching diode, 100V 200mA"
+    "datasheet_url": "https://example.com/datasheets/1n4148.pdf",
+    "pinout_image": "images/pinouts/1n4148.png",
+    "description": "Fast switching diode, 100V 200mA, widely used in digital and analog circuits.",
+    "analogues": ["1N914", "1N4148W", "BAV21"],
+    "substitutes": ["1N4148TR", "1N4148WS", "1N4448"],
+    "mounting": "through_hole",
+    "case": "DO-35",
+    "manufacturer": ["Vishay", "ON Semiconductor", "Fairchild"]
+  },
+  {
+    "id": "EL34",
+    "name": "EL34 Power Pentode",
+    "type": "vacuum_tube_pentode",
+    "origin": "europe",
+    "application_tags": ["output_stage", "audio", "guitar_amplifier", "hi_fi"],
+    "technology_tags": ["vacuum_tube", "pentode", "glass"],
+    "role_tags": ["power_amplifier", "output"],
+    "classification": {
+      "function": ["output", "power_amplifier"],
+      "frequency_range": ["LF"],
+      "amplifier_class": ["A", "AB", "B"],
+      "application": ["audio", "guitar_amplifier", "hi_fi"],
+      "mounting": ["socket", "chassis"]
+    },
+    "params": {
+      "plate_voltage_max": 800,
+      "plate_dissipation": 25,
+      "screen_voltage_max": 425,
+      "filament_voltage": 6.3,
+      "filament_current": 1.5,
+      "amplification_factor": 11,
+      "transconductance": 11
+    },
+    "operating_points": [
+      {
+        "name": "Class A single-ended",
+        "plate_voltage": 250,
+        "screen_voltage": 250,
+        "grid_voltage": -13.5,
+        "plate_current": 100,
+        "power_output": 11
+      },
+      {
+        "name": "Class AB push-pull",
+        "plate_voltage": 400,
+        "screen_voltage": 350,
+        "grid_voltage": -36,
+        "plate_current": 75,
+        "power_output": 50
+      }
+    ],
+    "parameters_extended": {
+      "electrical": {
+        "voltage_ratings": {
+          "max": 800,
+          "typical": 400,
+          "breakdown": 1000
+        },
+        "current_ratings": {
+          "max": 0.15,
+          "typical": 0.1,
+          "surge": 0.3
+        },
+        "frequency_characteristics": {
+          "bandwidth": 50000,
+          "low_frequency_response": 10,
+          "high_frequency_response": 50000
+        }
+      },
+      "thermal": {
+        "heater_warmup": 30,
+        "max_envelope_temp": 200
+      },
+      "package": {
+        "type": "octal",
+        "pins": 8,
+        "dimensions": "22.2x51mm",
+        "base_type": "octal"
+      }
+    },
+    "characteristics_file": "characteristics/el34_plate.txt",
+    "datasheet_url": "https://example.com/datasheets/el34.pdf",
+    "pinout_image": "images/pinouts/el34.png",
+    "description": "Power pentode vacuum tube, widely used in guitar and hi-fi amplifiers.",
+    "analogues": ["6CA7", "KT77", "E34L"],
+    "substitutes": ["6CA7", "KT77", "E34L", "6P3S"],
+    "mounting": "octal",
+    "envelope": "GT",
+    "manufacturer": ["Mullard", "Philips", "JJ Electronic", "Svetlana"],
+    "circuit_examples": [
+      {
+        "name": "Single-ended EL34 amplifier",
+        "schematic": "circuits/el34_se_amplifier.png",
+        "components": ["EL34", "PP_5K_25W", "12AX7", "470Ω_resistor", "100µF_capacitor"],
+        "power_output": 8,
+        "bandwidth": "15Hz-35kHz"
+      }
+    ]
+  },
+  {
+    "id": "6P3S",
+    "name": "6П3С (Soviet beam tetrode)",
+    "type": "vacuum_tube_beam_tetrode",
+    "origin": "soviet",
+    "application_tags": ["output_stage", "audio", "radio", "soviet"],
+    "technology_tags": ["vacuum_tube", "beam_tetrode", "soviet"],
+    "role_tags": ["power_amplifier", "output"],
+    "classification": {
+      "function": ["output", "power_amplifier"],
+      "frequency_range": ["LF"],
+      "amplifier_class": ["A", "AB"],
+      "application": ["audio", "radio", "instrumentation"],
+      "mounting": ["socket", "chassis"]
+    },
+    "params": {
+      "plate_voltage_max": 400,
+      "plate_dissipation": 20.5,
+      "screen_voltage_max": 400,
+      "filament_voltage": 6.3,
+      "filament_current": 0.9,
+      "amplification_factor": 6,
+      "transconductance": 6
+    },
+    "operating_points": [
+      {
+        "name": "Class A single-ended",
+        "plate_voltage": 250,
+        "screen_voltage": 250,
+        "grid_voltage": -14,
+        "plate_current": 72,
+        "power_output": 4.5
+      }
+    ],
+    "parameters_extended": {
+      "electrical": {
+        "voltage_ratings": {
+          "max": 400,
+          "typical": 250,
+          "breakdown": 600
+        },
+        "current_ratings": {
+          "max": 0.072,
+          "typical": 0.05,
+          "surge": 0.15
+        }
+      },
+      "thermal": {
+        "heater_warmup": 25,
+        "max_envelope_temp": 180
+      },
+      "package": {
+        "type": "octal",
+        "pins": 8,
+        "dimensions": "22.2x51mm",
+        "base_type": "octal"
+      }
+    },
+    "characteristics_file": "characteristics/6p3s_plate.txt",
+    "datasheet_url": "https://example.com/datasheets/6p3s.pdf",
+    "pinout_image": "images/pinouts/6p3s.png",
+    "description": "Soviet beam tetrode, analog of 6L6/5881.",
+    "analogues": ["6L6", "5881", "KT66"],
+    "substitutes": ["6L6", "5881", "KT66", "EL34"],
+    "mounting": "octal",
+    "envelope": "GT",
+    "manufacturer": ["Foton", "Reflektor", "Svetlana"]
+  },
+  {
+    "id": "KT66",
+    "name": "KT66 Beam Tetrode",
+    "type": "vacuum_tube_beam_tetrode",
+    "origin": "uk",
+    "application_tags": ["output_stage", "audio", "hi_fi", "guitar_amplifier"],
+    "technology_tags": ["vacuum_tube", "beam_tetrode", "audio"],
+    "role_tags": ["power_amplifier", "output"],
+    "classification": {
+      "function": ["output", "power_amplifier"],
+      "frequency_range": ["LF"],
+      "amplifier_class": ["A", "AB"],
+      "application": ["audio", "hi_fi", "guitar_amplifier"],
+      "mounting": ["socket", "chassis"]
+    },
+    "params": {
+      "plate_voltage_max": 500,
+      "plate_dissipation": 25,
+      "screen_voltage_max": 425,
+      "filament_voltage": 6.3,
+      "filament_current": 1.3,
+      "amplification_factor": 6,
+      "transconductance": 6.5
+    },
+    "operating_points": [
+      {
+        "name": "Class A single-ended",
+        "plate_voltage": 250,
+        "screen_voltage": 250,
+        "grid_voltage": -14,
+        "plate_current": 85,
+        "power_output": 6
+      }
+    ],
+    "parameters_extended": {
+      "electrical": {
+        "voltage_ratings": {
+          "max": 500,
+          "typical": 350,
+          "breakdown": 700
+        },
+        "current_ratings": {
+          "max": 0.085,
+          "typical": 0.06,
+          "surge": 0.2
+        }
+      },
+      "thermal": {
+        "heater_warmup": 30,
+        "max_envelope_temp": 200
+      },
+      "package": {
+        "type": "octal",
+        "pins": 8,
+        "dimensions": "22.2x51mm",
+        "base_type": "octal"
+      }
+    },
+    "characteristics_file": "characteristics/kt66_plate.txt",
+    "datasheet_url": "https://example.com/datasheets/kt66.pdf",
+    "pinout_image": "images/pinouts/kt66.png",
+    "description": "British beam tetrode, premium version of 6L6.",
+    "analogues": ["6L6", "5881", "6P3S"],
+    "substitutes": ["6L6", "5881", "6P3S"],
+    "mounting": "octal",
+    "envelope": "GT",
+    "manufacturer": ["GEC", "Mullard", "Genalex"]
+  },
+  {
+    "id": "GM70",
+    "name": "GM70 Directly Heated Triode",
+    "type": "vacuum_tube_triode",
+    "origin": "soviet",
+    "application_tags": ["output_stage", "audio", "hi_end", "single_ended"],
+    "technology_tags": ["vacuum_tube", "triode", "directly_heated", "high_power"],
+    "role_tags": ["power_amplifier", "output"],
+    "classification": {
+      "function": ["output", "power_amplifier"],
+      "frequency_range": ["LF"],
+      "amplifier_class": ["A"],
+      "application": ["audio", "hi_end"],
+      "mounting": ["socket", "chassis"]
+    },
+    "params": {
+      "plate_voltage_max": 1500,
+      "plate_dissipation": 125,
+      "filament_voltage": 20,
+      "filament_current": 2,
+      "amplification_factor": 8,
+      "transconductance": 12
+    },
+    "operating_points": [
+      {
+        "name": "Class A single-ended",
+        "plate_voltage": 1000,
+        "grid_voltage": -140,
+        "plate_current": 80,
+        "power_output": 30
+      }
+    ],
+    "parameters_extended": {
+      "electrical": {
+        "voltage_ratings": {
+          "max": 1500,
+          "typical": 1000,
+          "breakdown": 2000
+        },
+        "current_ratings": {
+          "max": 0.08,
+          "typical": 0.06,
+          "surge": 0.15
+        }
+      },
+      "thermal": {
+        "heater_warmup": 60,
+        "max_envelope_temp": 250
+      },
+      "package": {
+        "type": "large_ceramic",
+        "pins": 4,
+        "dimensions": "65x100mm",
+        "base_type": "ceramic"
+      }
+    },
+    "characteristics_file": "characteristics/gm70_plate.txt",
+    "datasheet_url": "https://example.com/datasheets/gm70.pdf",
+    "pinout_image": "images/pinouts/gm70.png",
+    "description": "Directly heated triode for high-power single-ended amplifiers.",
+    "analogues": ["GM70", "GM-70"],
+    "substitutes": ["GM70B", "GM70A"],
+    "mounting": "ceramic_socket",
+    "envelope": "ceramic",
+    "manufacturer": ["Svetlana", "Reflektor"]
+  },
+  {
+    "id": "ECC88",
+    "name": "ECC88 / 6DJ8 Dual Triode",
+    "type": "vacuum_tube_dual_triode",
+    "origin": "europe",
+    "application_tags": ["preamplifier", "audio", "hi_fi", "low_noise"],
+    "technology_tags": ["vacuum_tube", "dual_triode", "audio", "noval"],
+    "role_tags": ["preamplifier", "voltage_amplifier", "cathode_follower"],
+    "classification": {
+      "function": ["preamp", "driver", "cathode_follower"],
+      "frequency_range": ["LF", "MF"],
+      "amplifier_class": ["A"],
+      "application": ["audio", "hi_fi", "instrumentation"],
+      "mounting": ["socket", "chassis"]
+    },
+    "params": {
+      "plate_voltage_max": 130,
+      "plate_dissipation": 1.8,
+      "filament_voltage": 6.3,
+      "filament_current": 0.365,
+      "amplification_factor": 33,
+      "transconductance": 12.5
+    },
+    "operating_points": [
+      {
+        "name": "Typical preamp",
+        "plate_voltage": 90,
+        "grid_voltage": -1.3,
+        "plate_current": 15,
+        "gain": 30
+      }
+    ],
+    "parameters_extended": {
+      "electrical": {
+        "voltage_ratings": {
+          "max": 130,
+          "typical": 90,
+          "breakdown": 200
+        },
+        "current_ratings": {
+          "max": 0.015,
+          "typical": 0.01,
+          "surge": 0.03
+        }
+      },
+      "thermal": {
+        "heater_warmup": 25,
+        "max_envelope_temp": 180
+      },
+      "package": {
+        "type": "noval",
+        "pins": 9,
+        "dimensions": "22.2x51mm",
+        "base_type": "noval"
+      }
+    },
+    "characteristics_file": "characteristics/ecc88_plate.txt",
+    "datasheet_url": "https://example.com/datasheets/ecc88.pdf",
+    "pinout_image": "images/pinouts/ecc88.png",
+    "description": "Low-noise dual triode with high transconductance.",
+    "analogues": ["6DJ8", "ECC88", "6N23P"],
+    "substitutes": ["6DJ8", "ECC88", "6N23P"],
+    "mounting": "noval",
+    "envelope": "GT",
+    "manufacturer": ["Amperex", "Telefunken", "Philips"]
+  },
+  {
+    "id": "6N1P",
+    "name": "6Н1П (Soviet dual triode)",
+    "type": "vacuum_tube_dual_triode",
+    "origin": "soviet",
+    "application_tags": ["preamplifier", "audio", "soviet", "general_purpose"],
+    "technology_tags": ["vacuum_tube", "dual_triode", "soviet", "noval"],
+    "role_tags": ["preamplifier", "amplifier", "driver"],
+    "classification": {
+      "function": ["preamp", "driver", "phase_splitter"],
+      "frequency_range": ["LF", "MF"],
+      "amplifier_class": ["A"],
+      "application": ["audio", "radio", "instrumentation"],
+      "mounting": ["socket", "chassis"]
+    },
+    "params": {
+      "plate_voltage_max": 300,
+      "plate_dissipation": 2.2,
+      "filament_voltage": 6.3,
+      "filament_current": 0.6,
+      "amplification_factor": 35,
+      "transconductance": 4.35
+    },
+    "operating_points": [
+      {
+        "name": "Typical",
+        "plate_voltage": 250,
+        "grid_voltage": -2,
+        "plate_current": 7.5,
+        "gain": 30
+      }
+    ],
+    "parameters_extended": {
+      "electrical": {
+        "voltage_ratings": {
+          "max": 300,
+          "typical": 250,
+          "breakdown": 400
+        },
+        "current_ratings": {
+          "max": 0.0075,
+          "typical": 0.005,
+          "surge": 0.015
+        }
+      },
+      "thermal": {
+        "heater_warmup": 25,
+        "max_envelope_temp": 180
+      },
+      "package": {
+        "type": "noval",
+        "pins": 9,
+        "dimensions": "22.2x51mm",
+        "base_type": "noval"
+      }
+    },
+    "characteristics_file": "characteristics/6n1p_plate.txt",
+    "datasheet_url": "https://example.com/datasheets/6n1p.pdf",
+    "pinout_image": "images/pinouts/6n1p.png",
+    "description": "Soviet general-purpose dual triode with high plate voltage rating.",
+    "analogues": ["6N1P", "6N1P-EV"],
+    "substitutes": ["6N1P-E", "6N1P-V", "ECC85"],
+    "mounting": "noval",
+    "envelope": "GT",
+    "manufacturer": ["Foton", "Reflektor", "Svetlana"]
+  },
+  {
+    "id": "6N8S",
+    "name": "6Н8С (Soviet dual triode)",
+    "type": "vacuum_tube_dual_triode",
+    "origin": "soviet",
+    "application_tags": ["preamplifier", "audio", "soviet", "phase_splitter"],
+    "technology_tags": ["vacuum_tube", "dual_triode", "soviet", "octal"],
+    "role_tags": ["preamplifier", "phase_splitter", "driver"],
+    "classification": {
+      "function": ["preamp", "phase_splitter", "driver"],
+      "frequency_range": ["LF"],
+      "amplifier_class": ["A"],
+      "application": ["audio", "radio", "instrumentation"],
+      "mounting": ["socket", "chassis"]
+    },
+    "params": {
+      "plate_voltage_max": 300,
+      "plate_dissipation": 2.75,
+      "filament_voltage": 6.3,
+      "filament_current": 0.6,
+      "amplification_factor": 20,
+      "transconductance": 2.6
+    },
+    "operating_points": [
+      {
+        "name": "Typical",
+        "plate_voltage": 250,
+        "grid_voltage": -8,
+        "plate_current": 9,
+        "gain": 16
+      }
+    ],
+    "parameters_extended": {
+      "electrical": {
+        "voltage_ratings": {
+          "max": 300,
+          "typical": 250,
+          "breakdown": 400
+        },
+        "current_ratings": {
+          "max": 0.009,
+          "typical": 0.006,
+          "surge": 0.018
+        }
+      },
+      "thermal": {
+        "heater_warmup": 25,
+        "max_envelope_temp": 180
+      },
+      "package": {
+        "type": "octal",
+        "pins": 8,
+        "dimensions": "22.2x51mm",
+        "base_type": "octal"
+      }
+    },
+    "characteristics_file": "characteristics/6n8s_plate.txt",
+    "datasheet_url": "https://example.com/datasheets/6n8s.pdf",
+    "pinout_image": "images/pinouts/6n8s.png",
+    "description": "Soviet dual triode, analog of 6SN7.",
+    "analogues": ["6SN7", "6N8S"],
+    "substitutes": ["6SN7", "6N8S-E", "6N8S-V"],
+    "mounting": "octal",
+    "envelope": "GT",
+    "manufacturer": ["Foton", "Reflektor", "Svetlana"]
+  },
+  {
+    "id": "6N9S",
+    "name": "6Н9С (Soviet dual triode)",
+    "type": "vacuum_tube_dual_triode",
+    "origin": "soviet",
+    "application_tags": ["preamplifier", "audio", "soviet", "high_gain"],
+    "technology_tags": ["vacuum_tube", "dual_triode", "soviet", "octal"],
+    "role_tags": ["preamplifier", "voltage_amplifier", "driver"],
+    "classification": {
+      "function": ["preamp", "voltage_amplifier", "driver"],
+      "frequency_range": ["LF"],
+      "amplifier_class": ["A"],
+      "application": ["audio", "radio", "instrumentation"],
+      "mounting": ["socket", "chassis"]
+    },
+    "params": {
+      "plate_voltage_max": 300,
+      "plate_dissipation": 2.75,
+      "filament_voltage": 6.3,
+      "filament_current": 0.3,
+      "amplification_factor": 70,
+      "transconductance": 1.6
+    },
+    "operating_points": [
+      {
+        "name": "Typical",
+        "plate_voltage": 250,
+        "grid_voltage": -2,
+        "plate_current": 1.2,
+        "gain": 60
+      }
+    ],
+    "parameters_extended": {
+      "electrical": {
+        "voltage_ratings": {
+          "max": 300,
+          "typical": 250,
+          "breakdown": 400
+        },
+        "current_ratings": {
+          "max": 0.0012,
+          "typical": 0.0008,
+          "surge": 0.0025
+        }
+      },
+      "thermal": {
+        "heater_warmup": 25,
+        "max_envelope_temp": 180
+      },
+      "package": {
+        "type": "octal",
+        "pins": 8,
+        "dimensions": "22.2x51mm",
+        "base_type": "octal"
+      }
+    },
+    "characteristics_file": "characteristics/6n9s_plate.txt",
+    "datasheet_url": "https://example.com/datasheets/6n9s.pdf",
+    "pinout_image": "images/pinouts/6n9s.png",
+    "description": "Soviet dual triode, analog of 6SL7.",
+    "analogues": ["6SL7", "6N9S"],
+    "substitutes": ["6SL7", "6N9S-E", "6N9S-V"],
+    "mounting": "octal",
+    "envelope": "GT",
+    "manufacturer": ["Foton", "Reflektor", "Svetlana"]
   }
 ]

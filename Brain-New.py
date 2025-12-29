@@ -54,7 +54,7 @@ class ComponentLibraryBrain:
         
         print(f"🌐 API_BASE_URL: {self.base_url}")
         
-        # 🔧 ОБНОВЛЕННАЯ КОНФИГУРАЦИЯ БИБЛИОТЕКИ ДЛЯ НОВОЙ СТРУКТУРЫ
+        # 🔧 КОНФИГУРАЦИЯ БИБЛИОТЕКИ
         self.library_schema = {
             "name": "Electronic Component Library",
             "description": "Библиотека электронных компонентов с параметрами и характеристиками",
@@ -63,22 +63,15 @@ class ComponentLibraryBrain:
                     "description": "Поиск компонентов по параметрам",
                     "parameters": {
                         "type": {"description": "Тип компонента", "type": "string", "example": "bjt"},
-                        "component_type": {"description": "Тип компонента (расширенный)", "type": "string", "example": "bjt_npn"},
+                        "Imax_min": {"description": "Минимальный ток", "type": "float", "example": 0.1},
+                        "Imax_max": {"description": "Максимальный ток", "type": "float", "example": 1.0},
+                        "Uce_min": {"description": "Минимальное напряжение", "type": "float", "example": 20},
+                        "Uce_max": {"description": "Максимальное напряжение", "type": "float", "example": 100},
+                        "Ptot_min": {"description": "Минимальная мощность", "type": "float", "example": 0.5},
+                        "Ptot_max": {"description": "Максимальная мощность", "type": "float", "example": 10},
                         "origin": {"description": "Происхождение/страна", "type": "string", "example": "soviet"},
                         "search_text": {"description": "Поиск по названию и описанию", "type": "string", "example": "мощный"},
-                        # Новые параметры мощности
-                        "min_power": {"description": "Минимальная мощность (Вт)", "type": "float", "example": 0.5},
-                        "max_power": {"description": "Максимальная мощность (Вт)", "type": "float", "example": 10},
-                        # Новые параметры напряжения
-                        "min_voltage": {"description": "Минимальное напряжение (В)", "type": "float", "example": 20},
-                        "max_voltage": {"description": "Максимальное напряжение (В)", "type": "float", "example": 100},
-                        # Новые параметры тока
-                        "min_current": {"description": "Минимальный ток (А)", "type": "float", "example": 0.1},
-                        "max_current": {"description": "Максимальный ток (А)", "type": "float", "example": 1.0},
-                        # Параметры тегов и классификации
-                        "application": {"description": "Тег области применения", "type": "string", "example": "audio"},
-                        "application_tag": {"description": "Тег применения (синоним application)", "type": "string", "example": "switching"},
-                        "frequency_range": {"description": "Частотный диапазон", "type": "string", "example": "HF"}
+                        "sort_by": {"description": "Сортировка", "type": "string", "example": "Ptot_desc"}
                     }
                 },
                 "get_component_details": {
@@ -95,13 +88,7 @@ class ComponentLibraryBrain:
                 }
             },
             "component_types": ["bjt", "mosfet", "vacuum_tube", "diode", "transformer"],
-            "component_types_extended": ["bjt_npn", "bjt_pnp", "mosfet_n_channel", "vacuum_tube_dual_triode", "diode_switching", "transformer_output"],
-            "origin_types": ["soviet", "usa", "generic"],
-            "tag_types": {
-                "application_tags": ["audio", "switching", "amplification", "power", "RF"],
-                "technology_tags": ["silicon", "germanium", "mosfet", "vacuum_tube"],
-                "role_tags": ["amplifier", "switch", "preamplifier", "power_switch"]
-            }
+            "origin_types": ["soviet", "usa", "other"]
         }
     
     def create_prompt(self, user_question: str) -> str:
@@ -130,22 +117,22 @@ class ComponentLibraryBrain:
 1. Запрос: "Найди советские транзисторы с током больше 0.1А"
    Ответ: {{
         "command": "search_components",
-        "args": {{"origin": "soviet", "min_current": 0.1, "type": "bjt"}},
+        "args": {{"origin": "soviet", "Imax_min": 0.1, "type": "bjt"}},
         "explanation": "Поиск советских биполярных транзисторов с током более 0.1А"
    }}
 
-2. Запрос: "Покажи мощные MOSFET на 100В"
+2. Запрос: "Покажи характеристики транзистора 2N3904"
    Ответ: {{
-        "command": "search_components",
-        "args": {{"type": "mosfet", "min_voltage": 50, "max_voltage": 150, "min_power": 50}},
-        "explanation": "Поиск мощных MOSFET с напряжением 50-150В и мощностью от 50Вт"
+        "command": "get_characteristics",
+        "args": {{"component_id": "2N3904"}},
+        "explanation": "Получение вольт-амперных характеристик транзистора 2N3904"
    }}
 
-3. Запрос: "Найди лампы для аудио усилителей"
+3. Запрос: "Какие мощные полевые транзисторы есть в базе?"
    Ответ: {{
         "command": "search_components",
-        "args": {{"type": "vacuum_tube", "application": "audio"}},
-        "explanation": "Поиск вакуумных ламп для аудио применений"
+        "args": {{"type": "mosfet", "Ptot_min": 10}},
+        "explanation": "Поиск полевых транзисторов мощностью более 10Вт"
    }}
 
 Теперь обработай запрос пользователя и верни JSON:
@@ -279,7 +266,7 @@ class ComponentLibraryBrain:
                 params = {k: v for k, v in args.items() if v is not None and v != ""}
                 
                 # 🔧 ПРЕОБРАЗОВАНИЕ ТИПОВ ДЛЯ API
-                for key in ['min_power', 'max_power', 'min_voltage', 'max_voltage', 'min_current', 'max_current']:
+                for key in ['Imax_min', 'Imax_max', 'Uce_min', 'Uce_max', 'Ptot_min', 'Ptot_max']:
                     if key in params:
                         try:
                             params[key] = float(params[key])
@@ -287,18 +274,8 @@ class ComponentLibraryBrain:
                             # Если не удалось преобразовать, удаляем параметр
                             params.pop(key, None)
                 
-                # 🔧 ИСПРАВЛЕНИЕ: Используем /api/components/search/extended для расширенного поиска
-                # Но также можно использовать /api/components для базового поиска.
-                # Проверим, есть ли расширенные параметры (мощность, напряжение, ток, application).
-                # Если есть хотя бы один из них, используем extended endpoint.
-                extended_params = ['min_power', 'max_power', 'min_voltage', 'max_voltage', 
-                                   'min_current', 'max_current', 'application', 'frequency_range']
-                
-                if any(param in params for param in extended_params):
-                    url = f"{self.base_url}/api/components/search/extended"
-                else:
-                    url = f"{self.base_url}/api/components"
-                
+                # 🔧 ИСПРАВЛЕНИЕ: Используем /api/components вместо /components
+                url = f"{self.base_url}/api/components"
                 print(f"🌐 Запрос к: {url}")
                 print(f"📊 Параметры: {params}")
                 
@@ -463,3 +440,104 @@ if __name__ == "__main__":
             
     except Exception as e:
         print(f"❌ Ошибка инициализации: {e}")
+
+index.html:
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="jumbotron bg-light p-5 rounded">
+            <h1 class="display-4"><i class="fas fa-robot"></i> AI Component Library</h1>
+            <p class="lead">Открытая база электронных компонентов с ИИ-ассистентом</p>
+            <hr class="my-4">
+            <p>Ищите компоненты по параметрам, анализируйте характеристики, получайте рекомендации на естественном языке.</p>
+            
+            {% if brain_available %}
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i> ИИ-модуль активен. Используйте естественный язык для поиска!
+            </div>
+            {% else %}
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i> ИИ-модуль не доступен. Работает только параметрический поиск.
+            </div>
+            {% endif %}
+            
+            <a class="btn btn-primary btn-lg" href="/components" role="button">
+                <i class="fas fa-search"></i> Начать поиск
+            </a>
+            {% if brain_available %}
+            <a class="btn btn-success btn-lg" href="/ai-query" role="button">
+                <i class="fas fa-robot"></i> Задать вопрос ИИ
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-chart-bar"></i> Статистика базы
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Всего компонентов:</span>
+                        <span class="badge bg-primary rounded-pill">{{ stats.total_components }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Биполярные транзисторы:</span>
+                        <span class="badge bg-info rounded-pill">{{ stats.bjt_count }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Полевые транзисторы:</span>
+                        <span class="badge bg-info rounded-pill">{{ stats.mosfet_count }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Лампы:</span>
+                        <span class="badge bg-info rounded-pill">{{ stats.tube_count }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Советские компоненты:</span>
+                        <span class="badge bg-warning rounded-pill">{{ stats.soviet_count }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Американские компоненты:</span>
+                        <span class="badge bg-warning rounded-pill">{{ stats.usa_count }}</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <h3><i class="fas fa-star"></i> Избранные компоненты</h3>
+        <div class="row">
+            {% for component in featured_components %}
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ component.id }}</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">{{ component.name }}</h6>
+                        <p class="card-text small">{{ component.description[:100] }}...</p>
+                        <div class="mt-2">
+                            <span class="badge bg-secondary">{{ component.type }}</span>
+                            <span class="badge bg-{% if component.origin == 'soviet' %}warning{% else %}info{% endif %}">
+                                {{ component.origin|upper }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <a href="/component/{{ component.id }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-info-circle"></i> Подробнее
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

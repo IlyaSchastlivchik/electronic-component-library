@@ -227,10 +227,12 @@
                 <div class="alert alert-secondary mt-3">
                     <i class="fas fa-database"></i> <strong>Текущая база данных:</strong>
                     <ul class="mb-0">
-                        <li>Биполярные транзисторы (BJT): {{ stats.bjt_count if stats else '3' }} компонента</li>
-                        <li>Полевые транзисторы (MOSFET): {{ stats.mosfet_count if stats else '3' }} компонента</li>
-                        <li>Электронные лампы: {{ stats.tube_count if stats else '2' }} компонента</li>
-                        <li>Диоды: {{ stats.diode_count if stats else '1' }} компонент</li>
+                        <li>Всего компонентов: {{ stats.total_components }}</li>
+                        <li>Биполярные транзисторы (BJT): {{ stats.bjt_count }} компонентов</li>
+                        <li>Полевые транзисторы (MOSFET): {{ stats.mosfet_count }} компонентов</li>
+                        <li>Электронные лампы: {{ stats.tube_count }} компонентов</li>
+                        <li>Диоды: {{ stats.diode_count }} компонент</li>
+                        <li>Трансформаторы: {{ stats.transformer_count }} компонент</li>
                     </ul>
                 </div>
             </div>
@@ -240,5 +242,15 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- Функции для работы с ИИ уже в app.js -->
+<script>
+function loadExample(element) {
+    const query = element.textContent.trim();
+    document.getElementById('ai-query-input').value = query;
+}
+
+function clearAiQuery() {
+    document.getElementById('ai-query-input').value = '';
+    document.getElementById('ai-results').innerHTML = '';
+}
+</script>
 {% endblock %}

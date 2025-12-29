@@ -25,15 +25,18 @@
                             <tr>
                                 <th width="40%">Тип:</th>
                                 <td>
-                                    <span class="badge bg-{% if component.type == 'bjt' %}info{% elif component.type == 'mosfet' %}success{% else %}warning{% endif %}">
+                                    <span class="badge bg-{% if component.type == 'bjt' %}info{% elif component.type == 'mosfet' %}success{% elif component.type == 'vacuum_tube' %}warning{% elif component.type == 'diode' %}danger{% else %}secondary{% endif %}">
                                         {{ component.type }}
                                     </span>
+                                    {% if component.type_extended and component.type_extended != component.type %}
+                                    <br><small class="text-muted">Расширенный тип: {{ component.type_extended }}</small>
+                                    {% endif %}
                                 </td>
                             </tr>
                             <tr>
                                 <th>Происхождение:</th>
                                 <td>
-                                    <span class="badge bg-{% if component.origin == 'soviet' %}warning{% else %}info{% endif %}">
+                                    <span class="badge bg-{% if component.origin == 'soviet' %}warning{% elif component.origin == 'usa' %}info{% else %}secondary{% endif %}">
                                         {{ component.origin|upper if component.origin else 'N/A' }}
                                     </span>
                                 </td>
@@ -42,38 +45,219 @@
                                 <th>Описание:</th>
                                 <td>{{ component.description }}</td>
                             </tr>
-                        </table>
-                    </div>
-                    
-                    <div class="col-md-6">
-                        <h5>Параметры</h5>
-                        <table class="table table-sm">
+                            {% if component.mounting %}
                             <tr>
-                                <th width="50%">Максимальный ток (I<sub>max</sub>):</th>
-                                <td><strong>{{ component.params.Imax }} A</strong></td>
+                                <th>Монтаж:</th>
+                                <td>{{ component.mounting }}</td>
                             </tr>
+                            {% endif %}
+                            {% if component.case %}
                             <tr>
-                                <th>Максимальное напряжение (U<sub>ce</sub>):</th>
-                                <td><strong>{{ component.params.Uce_max }} V</strong></td>
+                                <th>Корпус:</th>
+                                <td>{{ component.case }}</td>
                             </tr>
+                            {% endif %}
+                            {% if component.manufacturer %}
                             <tr>
-                                <th>Максимальная мощность (P<sub>tot</sub>):</th>
-                                <td><strong>{{ component.params.Ptot }} W</strong></td>
-                            </tr>
-                            {% if component.characteristics_file %}
-                            <tr>
-                                <th>Файл характеристик:</th>
-                                <td>
-                                    <a href="/api/components/{{ component.id }}/characteristics?format=json" 
-                                       class="btn btn-sm btn-outline-info" target="_blank">
-                                        <i class="fas fa-download"></i> Скачать данные
-                                    </a>
-                                </td>
+                                <th>Производитель:</th>
+                                <td>{{ component.manufacturer|join(', ') }}</td>
                             </tr>
                             {% endif %}
                         </table>
                     </div>
+                    
+                    <div class="col-md-6">
+                        <h5>Основные параметры</h5>
+                        <table class="table table-sm">
+                            {% for key, value in component.params.items() %}
+                            {% if key not in ['Imax', 'Uce_max', 'Ptot'] or value != 0 %}
+                            <tr>
+                                <th width="60%">{{ key|replace('_', ' ')|title }}:</th>
+                                <td><strong>
+                                    {% if value is iterable and value is not string %}
+                                        {{ value|join(', ') }}
+                                    {% else %}
+                                        {{ value }}
+                                    {% endif %}
+                                </strong></td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                        </table>
+                    </div>
                 </div>
+                
+                <!-- Теги и классификация -->
+                {% if component.application_tags or component.technology_tags or component.role_tags or component.classification %}
+                <div class="card mt-4">
+                    <div class="card-header bg-info text-white">
+                        <i class="fas fa-tags"></i> Теги и классификация
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% if component.application_tags %}
+                            <div class="col-md-4 mb-3">
+                                <h6>Назначение:</h6>
+                                {% for tag in component.application_tags %}
+                                <span class="badge bg-success me-1 mb-1">{{ tag }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            
+                            {% if component.technology_tags %}
+                            <div class="col-md-4 mb-3">
+                                <h6>Технология:</h6>
+                                {% for tag in component.technology_tags %}
+                                <span class="badge bg-info me-1 mb-1">{{ tag }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            
+                            {% if component.role_tags %}
+                            <div class="col-md-4 mb-3">
+                                <h6>Роль в схеме:</h6>
+                                {% for tag in component.role_tags %}
+                                <span class="badge bg-warning me-1 mb-1">{{ tag }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if component.classification and (component.classification.function or component.classification.application) %}
+                        <hr>
+                        <h6>Классификация:</h6>
+                        <div class="row small">
+                            {% if component.classification.function %}
+                            <div class="col-6 col-md-3 mb-2">
+                                <strong>Функция:</strong><br>
+                                {{ component.classification.function|join(', ') }}
+                            </div>
+                            {% endif %}
+                            
+                            {% if component.classification.frequency_range %}
+                            <div class="col-6 col-md-3 mb-2">
+                                <strong>Частотный диапазон:</strong><br>
+                                {{ component.classification.frequency_range|join(', ') }}
+                            </div>
+                            {% endif %}
+                            
+                            {% if component.classification.application %}
+                            <div class="col-6 col-md-3 mb-2">
+                                <strong>Применение:</strong><br>
+                                {{ component.classification.application|join(', ') }}
+                            </div>
+                            {% endif %}
+                            
+                            {% if component.classification.amplifier_class %}
+                            <div class="col-6 col-md-3 mb-2">
+                                <strong>Класс усилителя:</strong><br>
+                                {{ component.classification.amplifier_class|join(', ') }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Расширенные параметры -->
+                {% if component.parameters_extended %}
+                <div class="card mt-4">
+                    <div class="card-header bg-secondary text-white">
+                        <i class="fas fa-sliders-h"></i> Расширенные параметры
+                    </div>
+                    <div class="card-body">
+                        {% if component.parameters_extended.electrical %}
+                        <h6>Электрические параметры:</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                {% if component.parameters_extended.electrical.voltage_ratings %}
+                                <tr>
+                                    <th>Напряжения:</th>
+                                    <td>
+                                        {% for key, value in component.parameters_extended.electrical.voltage_ratings.items() %}
+                                        <span class="badge bg-light text-dark">{{ key }}: {{ value }}V</span>
+                                        {% if not loop.last %} {% endif %}
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                                
+                                {% if component.parameters_extended.electrical.current_ratings %}
+                                <tr>
+                                    <th>Токи:</th>
+                                    <td>
+                                        {% for key, value in component.parameters_extended.electrical.current_ratings.items() %}
+                                        <span class="badge bg-light text-dark">{{ key }}: {{ value }}A</span>
+                                        {% if not loop.last %} {% endif %}
+                                        {% endfor %}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            </table>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Аналоги и замены -->
+                {% if component.analogues or component.substitutes %}
+                <div class="card mt-4">
+                    <div class="card-header bg-success text-white">
+                        <i class="fas fa-exchange-alt"></i> Аналоги и замены
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            {% if component.analogues %}
+                            <div class="col-md-6">
+                                <h6>Аналоги:</h6>
+                                {% for analogue in component.analogues %}
+                                <span class="badge bg-light text-dark border me-1 mb-1">{{ analogue }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                            
+                            {% if component.substitutes %}
+                            <div class="col-md-6">
+                                <h6>Возможные замены:</h6>
+                                {% for sub in component.substitutes %}
+                                <span class="badge bg-light text-dark border me-1 mb-1">{{ sub }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Примеры схем -->
+                {% if component.circuit_examples %}
+                <div class="card mt-4">
+                    <div class="card-header bg-warning text-white">
+                        <i class="fas fa-project-diagram"></i> Примеры схем
+                    </div>
+                    <div class="card-body">
+                        {% for example in component.circuit_examples %}
+                        <div class="mb-3 p-3 border rounded">
+                            <h6>{{ example.name }}</h6>
+                            {% if example.components %}
+                            <p class="small mb-1"><strong>Компоненты:</strong> {{ example.components|join(', ') }}</p>
+                            {% endif %}
+                            {% if example.gain %}
+                            <p class="small mb-1"><strong>Усиление:</strong> {{ example.gain }}</p>
+                            {% endif %}
+                            {% if example.bandwidth %}
+                            <p class="small mb-1"><strong>Полоса частот:</strong> {{ example.bandwidth }}</p>
+                            {% endif %}
+                            {% if example.power_output %}
+                            <p class="small mb-0"><strong>Выходная мощность:</strong> {{ example.power_output }}W</p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
                 
                 {% if characteristics %}
                 <div class="mt-4">
@@ -102,9 +286,11 @@
                     <a href="/api/components/{{ component.id }}" class="btn btn-outline-info" target="_blank">
                         <i class="fas fa-code"></i> API JSON
                     </a>
+                    {% if component.characteristics_file %}
                     <a href="/api/components/{{ component.id }}/characteristics" class="btn btn-outline-info" target="_blank">
                         <i class="fas fa-database"></i> Данные ВАХ
                     </a>
+                    {% endif %}
                     
                     {% if brain_available %}
                     <button class="btn btn-success" onclick="openAiQueryForComponent('{{ component.id }}')">
@@ -115,19 +301,44 @@
             </div>
         </div>
         
-        <div class="card">
-            <div class="card-header bg-secondary text-white">
-                <i class="fas fa-info-circle"></i> О проекте
+        <!-- Похожие компоненты -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-random"></i> Похожие компоненты
             </div>
             <div class="card-body">
-                <p class="small">
-                    Это открытая база данных электронных компонентов.
-                    Вы можете помочь проекту, добавив новые компоненты или исправив существующие данные.
+                <div class="text-center">
+                    <a href="/api/components/similar/{{ component.id }}" class="btn btn-outline-primary btn-sm" target="_blank">
+                        <i class="fas fa-search"></i> Найти похожие через API
+                    </a>
+                </div>
+                <p class="small text-muted mt-2">
+                    Используйте API для поиска компонентов с похожими характеристиками и тегами.
                 </p>
-                <a href="https://github.com/ваш-логин/ai-component-library" 
-                   class="btn btn-outline-dark btn-sm w-100" target="_blank">
-                    <i class="fab fa-github"></i> Внести вклад
-                </a>
+            </div>
+        </div>
+        
+        <!-- Дополнительные ссылки -->
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <i class="fas fa-link"></i> Ссылки
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    {% if component.datasheet_url %}
+                    <a href="{{ component.datasheet_url }}" class="btn btn-outline-dark btn-sm" target="_blank">
+                        <i class="fas fa-file-pdf"></i> Datasheet
+                    </a>
+                    {% endif %}
+                    
+                    <a href="/components?type={{ component.type }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-list"></i> Все компоненты типа {{ component.type }}
+                    </a>
+                    
+                    <a href="/components?origin={{ component.origin }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-flag"></i> Все компоненты {{ component.origin }}
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -136,6 +347,7 @@
 
 {% block scripts %}
 {% if characteristics %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const ctx = document.getElementById('characteristicsChart').getContext('2d');
@@ -169,7 +381,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 tooltip: {
                     callbacks: {
                         label: function(context) {
-                            return `Напряжение: ${context.label}V, Ток: ${context.parsed.y.toExponential(2)}A`;
+                            return `Напряжение: ${context.label}V, Ток: ${context.parsed.y}A`;
                         }
                     }
                 }
@@ -182,15 +394,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 },
                 y: {
-                    type: 'logarithmic',
                     title: {
                         display: true,
                         text: 'Ток (A)'
-                    },
-                    ticks: {
-                        callback: function(value) {
-                            return value.toExponential(1);
-                        }
                     }
                 }
             }
