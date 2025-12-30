@@ -591,7 +591,16 @@ async def ai_query_page(request: Request):
         "has_openrouter_proxy": True,
         "stats": stats
     })
+# ==================== HEALTHCHECK ENDPOINT ====================
 
+@app.get("/health")
+async def health_check():
+    """Проверка живости сервера для GitHub Actions"""
+    return {
+        "status": "alive", 
+        "components_loaded": len(components),
+        "brain_available": brain_available
+    }
 # ==================== ЗАПУСК СЕРВЕРА ====================
 
 if __name__ == "__main__":
