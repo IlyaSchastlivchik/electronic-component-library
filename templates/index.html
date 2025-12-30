@@ -54,6 +54,14 @@
                         <span class="badge bg-info rounded-pill">{{ stats.tube_count }}</span>
                     </li>
                     <li class="list-group-item d-flex justify-content-between">
+                        <span>Диоды:</span>
+                        <span class="badge bg-info rounded-pill">{{ stats.diode_count }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Трансформаторы:</span>
+                        <span class="badge bg-info rounded-pill">{{ stats.transformer_count }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
                         <span>Советские компоненты:</span>
                         <span class="badge bg-warning rounded-pill">{{ stats.soviet_count }}</span>
                     </li>
@@ -61,7 +69,47 @@
                         <span>Американские компоненты:</span>
                         <span class="badge bg-warning rounded-pill">{{ stats.usa_count }}</span>
                     </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Японские компоненты:</span>
+                        <span class="badge bg-warning rounded-pill">{{ stats.japan_count }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Европейские компоненты:</span>
+                        <span class="badge bg-warning rounded-pill">{{ stats.europe_count }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>Прочие (generic):</span>
+                        <span class="badge bg-secondary rounded-pill">{{ stats.generic_count }}</span>
+                    </li>
                 </ul>
+            </div>
+        </div>
+        
+        <!-- Блок самых мощных компонентов -->
+        <div class="card mt-4">
+            <div class="card-header bg-danger text-white">
+                <i class="fas fa-bolt"></i> Самые мощные компоненты
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    {% for component in powerful_components %}
+                    <div class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ component.id }}</h6>
+                            <small class="text-danger">
+                                <i class="fas fa-bolt"></i> {{ component.params.get('Ptot', 0)|round(1) }} Вт
+                            </small>
+                        </div>
+                        <p class="mb-1 small text-muted">{{ component.name[:50] }}{% if component.name|length > 50 %}...{% endif %}</p>
+                        <small>
+                            <span class="badge bg-{% if component.origin == 'soviet' %}warning{% elif component.origin == 'usa' %}info{% elif component.origin == 'europe' %}success{% else %}secondary{% endif %}">
+                                {{ component.origin|upper if component.origin else 'N/A' }}
+                            </span>
+                            <span class="badge bg-dark ms-1">{{ component.type }}</span>
+                        </small>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
         </div>
     </div>

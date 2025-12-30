@@ -363,7 +363,7 @@ async def proxy_openrouter_chat(request: Request):
             )
 
         # 2. Подготавливаем запрос к OpenRouter
-        openrouter_url = "https://openrouter.ai/api/v1/chat/completions"
+        openrouter_url = "https://openrouter.ai/api/v1/chat/completions "
         
         # 2.1. Формируем заголовки, включая ключ ПОЛЬЗОВАТЕЛЯ
         headers = {
@@ -410,35 +410,30 @@ async def proxy_openrouter_chat(request: Request):
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     """Главная страница"""
-    # Считаем статистику по типам
-    type_counts = defaultdict(int)
-    origin_counts = defaultdict(int)
-    tag_counts = defaultdict(int)
+    # Правильный подсчёт статистики для новой структуры
+    stats = {
+        "total_components": len(components),
+        "bjt_count": len([c for c in components if c.get('type') in ['bjt_npn', 'bjt_pnp']]),
+        "mosfet_count": len([c for c in components if 'mosfet' in c.get('type', '').lower()]),
+        "tube_count": len([c for c in components if 'vacuum_tube' in c.get('type', '').lower()]),
+        "diode_count": len([c for c in components if 'diode' in c.get('type', '').lower()]),
+        "transformer_count": len([c for c in components if 'transformer' in c.get('type', '').lower()]),
+        "soviet_count": len([c for c in components if c.get('origin', '').lower() == 'soviet']),
+        "usa_count": len([c for c in components if c.get('origin', '').lower() == 'usa']),
+        "japan_count": len([c for c in components if c.get('origin', '').lower() == 'japan']),
+        "europe_count": len([c for c in components if c.get('origin', '').lower() in ['europe', 'uk']]),
+        "generic_count": len([c for c in components if c.get('origin', '').lower() == 'generic']),
+    }
     
-    for comp in components:
-        type_counts[comp.get('type', 'unknown')] += 1
-        origin_counts[comp.get('origin', 'unknown')] += 1
-        for tag in comp.get('application_tags', []):
-            tag_counts[tag] += 1
-    
-    # Самые популярные теги
-    popular_tags = sorted(tag_counts.items(), key=lambda x: x[1], reverse=True)[:10]
-    
-    # Самые мощные компоненты
+    # Самые мощные компоненты (по максимальной мощности)
     powerful_components = sorted(
         components,
         key=lambda x: get_power_value(x),
         reverse=True
     )[:5]
     
+    # Избранные компоненты (первые 6)
     featured_components = components[:6]
-    
-    stats = {
-        "total_components": len(components),
-        "type_counts": dict(type_counts),
-        "origin_counts": dict(origin_counts),
-        "popular_tags": dict(popular_tags)
-    }
     
     return templates.TemplateResponse("index.html", {
         "request": request,
