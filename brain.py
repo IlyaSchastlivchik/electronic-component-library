@@ -78,8 +78,16 @@ class ComponentLibraryBrain:
         # Настройки приложения
         self.app_name = "Electronic Component Library"
         
-        # 🔧 ВАЖНО: Базовый URL для API теперь берется из окружения или по умолчанию localhost:8000
-        self.base_url = os.getenv("API_BASE_URL", "http://localhost:8000")
+        # 🔧 ВАЖНО: Базовый URL для API с поддержкой Render
+        render_port = os.environ.get("PORT", "8000")
+        if "RENDER" in os.environ:
+            # Внутри контейнера Render используем 0.0.0.0
+            self.base_url = f"http://0.0.0.0:{render_port}"
+            print(f"🌍 Обнаружена среда Render, использую {self.base_url}")
+        else:
+            # Для локальной разработки используем localhost
+            self.base_url = os.getenv("API_BASE_URL", "http://localhost:8000")
+            print(f"🏠 Локальная среда, использую {self.base_url}")
         
         # 🔧 ОБНОВЛЕННАЯ КОНФИГУРАЦИЯ БИБЛИОТЕКИ ДЛЯ НОВОЙ СТРУКТУРЫ
         self.library_schema = {
