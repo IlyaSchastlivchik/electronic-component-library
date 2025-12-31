@@ -1,58 +1,85 @@
 import json
 import os
 import requests
-from typing import Dict
-from dotenv import load_dotenv
+import re
+from typing import Dict, Optional
 
-# 🔧 КРИТИЧЕСКАЯ ПРАВКА ДЛЯ RENDER - ЕДИНЫЙ ПУТЬ
-# Проверяем все возможные пути к конфигурации
-def load_environment():
-    env_paths = [
-        '/etc/secrets/.env',    # Render Secret Files
-        '.env',                  # Локальная разработка
-        '../.env',               # Альтернативный локальный путь
-        '../../.env'             # Еще один возможный путь
-    ]
+class SimpleQueryParser:
+    """Простой парсер запросов для работы без OpenRouter API"""
     
-    for path in env_paths:
-        if os.path.exists(path):
-            load_dotenv(path, override=True)
-            print(f"✅ Загружен .env из {path}")
-            return True
-    
-    print("⚠️  .env файл не найден. Использую переменные окружения системы.")
-    return False
+    @staticmethod
+    def parse_query(user_question: str) -> Dict:
+        question = user_question.lower()
+        args = {}
+        
+        # Определяем тип компонента
+        if 'транзистор' in question:
+            if 'биполяр' in question or 'bjt' in question:
+                args['type'] = 'bjt'
+            elif 'полевой' in question or 'mosfet' in question:
+                args['type'] = 'mosfet'
+            else:
+                args['type'] = 'bjt'
+        elif 'лампа' in question or 'tube' in question:
+            args['type'] = 'vacuum_tube'
+        elif 'диод' in question:
+            args['type'] = 'diode'
+        
+        # Определяем происхождение
+        if 'советск' in question or 'отечествен' in question:
+            args['origin'] = 'soviet'
+        elif 'американ' in question or 'usa' in question:
+            args['origin'] = 'usa'
+        elif 'япон' in question:
+            args['origin'] = 'japan'
+        elif 'европ' in question:
+            args['origin'] = 'europe'
+        
+        # Парсим числовые параметры
+        # Мощность
+        power_match = re.search(r'мощность[^\d]*(\d+\.?\d*)', question)
+        if power_match:
+            args['min_power'] = float(power_match.group(1))
+        
+        # Ток
+        current_match = re.search(r'ток[^\d]*(\d+\.?\d*)\s*а', question)
+        if current_match:
+            args['min_current'] = float(current_match.group(1))
+        
+        # Напряжение
+        voltage_match = re.search(r'напряжен[^\d]*(\d+\.?\d*)\s*в', question)
+        if voltage_match:
+            args['min_voltage'] = float(voltage_match.group(1))
+        
+        # Если в запросе есть "мощный" или "большая мощность", устанавливаем минимальную мощность 10 Вт
+        if 'мощн' in question or 'большая мощность' in question:
+            args['min_power'] = 10.0
+        
+        # Если в запросе есть "высокое напряжение", устанавливаем минимальное напряжение 100 В
+        if 'высокое напряжение' in question:
+            args['min_voltage'] = 100.0
+        
+        # Если в запросе есть "большой ток", устанавливаем минимальный ток 1 А
+        if 'большой ток' in question:
+            args['min_current'] = 1.0
+        
+        return {
+            "command": "search_components",
+            "args": args,
+            "explanation": "Поиск по ключевым словам (режим без ИИ)"
+        }
 
-# Загружаем конфигурацию
-load_environment()
 
 class ComponentLibraryBrain:
     def __init__(self):
-        # 🔧 ОСНОВНЫЕ ПЕРЕМЕННЫЕ ДЛЯ OPENROUTER И DEEPSEEK V3
-        self.api_key = os.getenv("OPENROUTER_API_KEY")
-        self.model = os.getenv("OPENROUTER_MODEL", "deepseek/deepseek-chat")  # ⬅️ CHAT по умолчанию
-        
-        # 🔧 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ ДЛЯ RENDER
-        # На Render нужно использовать localhost с портом из переменной PORT
-        render_port = os.environ.get("PORT", "8000")
-        if "RENDER" in os.environ:  # Автоматическое определение Render
-            self.base_url = f"http://localhost:{render_port}"
-            print(f"🌍 Обнаружена среда Render, использую localhost:{render_port}")
-        else:
-            self.base_url = os.getenv("API_BASE_URL", "http://localhost:8000")
+        # Модель по умолчанию
+        self.model = "deepseek/deepseek-chat"
         
         # Настройки приложения
-        self.app_name = os.getenv("APP_NAME", "Electronic Component Library")
-        self.app_url = os.getenv("APP_URL", f"http://localhost:{render_port}")
+        self.app_name = "Electronic Component Library"
         
-        # 🔧 ВАЛИДАЦИЯ КОНФИГУРАЦИИ
-        if not self.api_key:
-            print("⚠️  OPENROUTER_API_KEY не найден! Режим brain.py будет работать только для поиска в локальной базе.")
-        else:
-            print(f"✅ API-ключ загружен: {self.api_key[:20]}...")
-            print(f"🤖 Используется модель: {self.model}")
-        
-        print(f"🌐 API_BASE_URL: {self.base_url}")
+        # 🔧 ВАЖНО: Базовый URL для API теперь берется из окружения или по умолчанию localhost:8000
+        self.base_url = os.getenv("API_BASE_URL", "http://localhost:8000")
         
         # 🔧 ОБНОВЛЕННАЯ КОНФИГУРАЦИЯ БИБЛИОТЕКИ ДЛЯ НОВОЙ СТРУКТУРЫ
         self.library_schema = {
@@ -152,10 +179,10 @@ class ComponentLibraryBrain:
 """
         return prompt
     
-    def ask_openrouter(self, prompt: str) -> str:
+    def ask_openrouter(self, prompt: str, api_key: Optional[str]) -> str:
         """Отправка запроса к OpenRouter для DeepSeek Chat"""
         # Если нет API ключа, возвращаем команду по умолчанию для поиска
-        if not self.api_key:
+        if not api_key:
             print("⚠️  API ключ отсутствует, использую режим поиска по умолчанию")
             return json.dumps({
                 "command": "search_components",
@@ -166,9 +193,9 @@ class ComponentLibraryBrain:
         url = "https://openrouter.ai/api/v1/chat/completions"
         
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
+            "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
-            "HTTP-Referer": self.app_url,
+            "HTTP-Referer": self.base_url,
             "X-Title": self.app_name
         }
         
@@ -393,23 +420,31 @@ class ComponentLibraryBrain:
                 "details": traceback.format_exc()
             }
     
-    def process_query(self, user_question: str) -> Dict:
+    def process_query(self, user_question: str, user_api_key: Optional[str] = None) -> Dict:
         """Основной метод обработки запроса пользователя"""
         try:
             print(f"\n🎯 Обрабатываю запрос: '{user_question}'")
+            print(f"🔑 Ключ предоставлен: {'Да' if user_api_key else 'Нет'}")
             
-            # Создаем промпт
-            prompt = self.create_prompt(user_question)
-            print(f"📝 Промпт создан ({len(prompt)} символов)")
-            
-            # Запрашиваем ответ у ИИ
-            json_response = self.ask_openrouter(prompt)
-            print(f"🤖 Ответ ИИ получен")
-            
-            # Парсим команду
-            command_data = self.parse_command(json_response)
-            print(f"📋 Команда: {command_data.get('command')}")
-            print(f"💡 Объяснение: {command_data.get('explanation')}")
+            # Если ключ не предоставлен, используем простой парсер
+            if not user_api_key:
+                print("🔧 Использую SimpleQueryParser для локального поиска")
+                command_data = SimpleQueryParser.parse_query(user_question)
+                print(f"📋 Команда (локальная): {command_data.get('command')}")
+                print(f"💡 Объяснение: {command_data.get('explanation')}")
+            else:
+                # Создаем промпт для ИИ
+                prompt = self.create_prompt(user_question)
+                print(f"📝 Промпт создан ({len(prompt)} символов)")
+                
+                # Запрашиваем ответ у ИИ
+                json_response = self.ask_openrouter(prompt, user_api_key)
+                print(f"🤖 Ответ ИИ получен")
+                
+                # Парсим команду
+                command_data = self.parse_command(json_response)
+                print(f"📋 Команда: {command_data.get('command')}")
+                print(f"💡 Объяснение: {command_data.get('explanation')}")
             
             # Выполняем команду
             result = self.execute_command(command_data)
@@ -419,7 +454,8 @@ class ComponentLibraryBrain:
             response = {
                 "success": True,
                 "command": command_data,
-                "result": result
+                "result": result,
+                "mode": "openrouter" if user_api_key else "local_parser"
             }
             
             # Если результат содержит ошибку, помечаем как неуспешный
@@ -437,7 +473,8 @@ class ComponentLibraryBrain:
             return {
                 "success": False,
                 "error": f"Внутренняя ошибка: {str(e)}",
-                "details": traceback.format_exc()
+                "details": traceback.format_exc(),
+                "mode": "error"
             }
 
 # 🔧 АВТОТЕСТ ПРИ ЗАПУСКЕ
@@ -449,12 +486,12 @@ if __name__ == "__main__":
         print(f"   Модель: {brain.model}")
         print(f"   Базовый URL: {brain.base_url}")
         
-        # Тестовый запрос
+        # Тестовый запрос без ключа
         test_query = "Найди советские транзисторы"
-        print(f"\n🧪 Тестовый запрос: '{test_query}'")
+        print(f"\n🧪 Тестовый запрос (без ключа): '{test_query}'")
         
-        result = brain.process_query(test_query)
-        print(f"🎯 Результат: успех={result.get('success')}")
+        result = brain.process_query(test_query, None)
+        print(f"🎯 Результат: успех={result.get('success')}, режим={result.get('mode')}")
         
         if result.get("success"):
             print(f"📊 Найдено компонентов: {result.get('result', {}).get('count', 0)}")

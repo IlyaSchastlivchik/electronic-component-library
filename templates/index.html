@@ -1,123 +1,139 @@
-{% extends "base.html" %}
+{% extends "base.html" %} 
 
 {% block content %}
-<div class="row">
-    <div class="col-md-8">
-        <div class="jumbotron bg-light p-5 rounded">
-            <h1 class="display-4"><i class="fas fa-robot"></i> AI Component Library</h1>
-            <p class="lead">Открытая база электронных компонентов с ИИ-ассистентом</p>
-            <hr class="my-4">
-            <p>Ищите компоненты по параметрам, анализируйте характеристики, получайте рекомендации на естественном языке.</p>
-            
-            {% if brain_available %}
-            <div class="alert alert-success">
-                <i class="fas fa-check-circle"></i> ИИ-модуль активен. Используйте естественный язык для поиска!
+<div class="text-center mb-5">
+    <h1 class="display-4">AI Component Library</h1>
+    <p class="lead">Открытая база электронных компонентов с ИИ-ассистентом</p>
+    <p class="text-muted">
+        Ищите компоненты по параметрам, анализируйте характеристики, получайте рекомендации на естественном языке.
+    </p>
+    
+    <!-- Индикатор режима работы -->
+    <div class="row justify-content-center mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Режим работы системы</h5>
+                    <div id="home-ai-status">
+                        {% if brain_available %}
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle"></i> Локальный ИИ-модуль доступен
+                                <br><small>Вы можете искать компоненты с помощью естественного языка</small>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i> Локальный ИИ-модуль недоступен
+                                <br><small>Для расширенного поиска потребуется API-ключ OpenRouter</small>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
-            {% else %}
-            <div class="alert alert-warning">
-                <i class="fas fa-exclamation-triangle"></i> ИИ-модуль не доступен. Работает только параметрический поиск.
-            </div>
-            {% endif %}
-            
-            <a class="btn btn-primary btn-lg" href="/components" role="button">
-                <i class="fas fa-search"></i> Начать поиск
-            </a>
-            {% if brain_available %}
-            <a class="btn btn-success btn-lg" href="/ai-query" role="button">
-                <i class="fas fa-robot"></i> Задать вопрос ИИ
-            </a>
-            {% endif %}
         </div>
     </div>
     
-    <div class="col-md-4">
-        <div class="card">
+    <div class="mt-4">
+        <a href="/components" class="btn btn-primary btn-lg me-3">
+            <i class="fas fa-search"></i> Начать поиск
+        </a>
+        <a href="/ai-query" class="btn btn-success btn-lg">
+            <i class="fas fa-robot"></i> Задать вопрос ИИ
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
             <div class="card-header bg-primary text-white">
                 <i class="fas fa-chart-bar"></i> Статистика базы
             </div>
             <div class="card-body">
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>Всего компонентов:</span>
-                        <span class="badge bg-primary rounded-pill">{{ stats.total_components }}</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>Биполярные транзисторы:</span>
-                        <span class="badge bg-info rounded-pill">{{ stats.bjt_count }}</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>Полевые транзисторы:</span>
-                        <span class="badge bg-info rounded-pill">{{ stats.mosfet_count }}</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>Лампы:</span>
-                        <span class="badge bg-info rounded-pill">{{ stats.tube_count }}</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>Диоды:</span>
-                        <span class="badge bg-info rounded-pill">{{ stats.diode_count }}</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>Трансформаторы:</span>
-                        <span class="badge bg-info rounded-pill">{{ stats.transformer_count }}</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>Советские компоненты:</span>
-                        <span class="badge bg-warning rounded-pill">{{ stats.soviet_count }}</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>Американские компоненты:</span>
-                        <span class="badge bg-warning rounded-pill">{{ stats.usa_count }}</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>Японские компоненты:</span>
-                        <span class="badge bg-warning rounded-pill">{{ stats.japan_count }}</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>Европейские компоненты:</span>
-                        <span class="badge bg-warning rounded-pill">{{ stats.europe_count }}</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between">
-                        <span>Прочие (generic):</span>
-                        <span class="badge bg-secondary rounded-pill">{{ stats.generic_count }}</span>
-                    </li>
-                </ul>
+                <div class="row">
+                    <div class="col-md-6">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Всего компонентов
+                                <span class="badge bg-primary rounded-pill">{{ stats.total_components }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Биполярные транзисторы
+                                <span class="badge bg-info rounded-pill">{{ stats.bjt_count }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Полевые транзисторы
+                                <span class="badge bg-success rounded-pill">{{ stats.mosfet_count }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Лампы
+                                <span class="badge bg-warning rounded-pill">{{ stats.tube_count }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Диоды
+                                <span class="badge bg-danger rounded-pill">{{ stats.diode_count }}</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Советские компоненты
+                                <span class="badge bg-warning rounded-pill">{{ stats.soviet_count }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Американские компоненты
+                                <span class="badge bg-info rounded-pill">{{ stats.usa_count }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Японские компоненты
+                                <span class="badge bg-danger rounded-pill">{{ stats.japan_count }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Европейские компоненты
+                                <span class="badge bg-primary rounded-pill">{{ stats.europe_count }}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Прочие (generic)
+                                <span class="badge bg-secondary rounded-pill">{{ stats.generic_count }}</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
-        
-        <!-- Блок самых мощных компонентов -->
-        <div class="card mt-4">
-            <div class="card-header bg-danger text-white">
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
                 <i class="fas fa-bolt"></i> Самые мощные компоненты
             </div>
             <div class="card-body">
-                <div class="list-group list-group-flush">
-                    {% for component in powerful_components %}
-                    <div class="list-group-item list-group-item-action">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h6 class="mb-1">{{ component.id }}</h6>
-                            <small class="text-danger">
-                                <i class="fas fa-bolt"></i> {{ component.params.get('Ptot', 0)|round(1) }} Вт
-                            </small>
-                        </div>
-                        <p class="mb-1 small text-muted">{{ component.name[:50] }}{% if component.name|length > 50 %}...{% endif %}</p>
-                        <small>
-                            <span class="badge bg-{% if component.origin == 'soviet' %}warning{% elif component.origin == 'usa' %}info{% elif component.origin == 'europe' %}success{% else %}secondary{% endif %}">
-                                {{ component.origin|upper if component.origin else 'N/A' }}
-                            </span>
-                            <span class="badge bg-dark ms-1">{{ component.type }}</span>
-                        </small>
+                {% for component in powerful_components %}
+                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 {% if not loop.last %}border-bottom{% endif %}">
+                    <div>
+                        <strong>{{ component.id }}</strong><br>
+                        <small>{{ component.params.get('Ptot', 0)|round(1) }} Вт</small>
                     </div>
-                    {% endfor %}
+                    <div class="text-end">
+                        <small class="text-muted">{{ component.name[:30] }}{% if component.name|length > 30 %}...{% endif %}</small><br>
+                        <span class="badge bg-{{ 'warning' if component.origin == 'soviet' else 'info' }}">
+                            {{ component.origin|upper if component.origin else 'N/A' }}
+                        </span>
+                        <span class="badge bg-secondary ms-1">{{ component.type }}</span>
+                    </div>
                 </div>
+                {% endfor %}
             </div>
         </div>
     </div>
 </div>
 
-<div class="row mt-4">
-    <div class="col-12">
-        <h3><i class="fas fa-star"></i> Избранные компоненты</h3>
+<div class="card mt-4">
+    <div class="card-header bg-info text-white">
+        <i class="fas fa-star"></i> Избранные компоненты
+    </div>
+    <div class="card-body">
         <div class="row">
             {% for component in featured_components %}
             <div class="col-md-4 mb-3">
@@ -128,14 +144,16 @@
                         <p class="card-text small">{{ component.description[:100] }}...</p>
                         <div class="mt-2">
                             <span class="badge bg-secondary">{{ component.type }}</span>
-                            <span class="badge bg-{% if component.origin == 'soviet' %}warning{% else %}info{% endif %}">
+                            {% if component.origin %}
+                            <span class="badge bg-{{ 'warning' if component.origin == 'soviet' else 'info' }} ms-1">
                                 {{ component.origin|upper }}
                             </span>
+                            {% endif %}
                         </div>
                     </div>
                     <div class="card-footer">
                         <a href="/component/{{ component.id }}" class="btn btn-sm btn-outline-primary">
-                            <i class="fas fa-info-circle"></i> Подробнее
+                            <i class="fas fa-eye"></i> Подробнее
                         </a>
                     </div>
                 </div>

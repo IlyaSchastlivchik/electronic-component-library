@@ -78,6 +78,10 @@ const ApiKeyManager = {
         }
         
         showNotification('API-ключ сохранен в вашем браузере', 'success');
+        
+        // Обновляем статус системы
+        AiStatusManager.updateStatus();
+        
         return true;
     },
     
@@ -120,6 +124,151 @@ const ApiKeyManager = {
         }
         this.updateKeyStatus('Ключ удален. Введите новый ключ для использования ИИ.', 'warning');
         showNotification('API-ключ удален', 'info');
+        
+        // Обновляем статус системы
+        AiStatusManager.updateStatus();
+    }
+};
+
+// Менеджер статуса ИИ системы
+const AiStatusManager = {
+    updateStatus: function() {
+        // Получаем информацию о доступности brain.py из data-атрибута body
+        const hasBrain = document.body.dataset.brainAvailable === 'true';
+        const hasKey = ApiKeyManager.hasKey();
+        
+        let status = "unknown";
+        let badgeClass = "bg-secondary";
+        let message = "";
+        
+        if (hasBrain && hasKey) {
+            status = "full";
+            badgeClass = "bg-success";
+            message = "Полный доступ к ИИ (поиск + чат)";
+        } else if (hasBrain && !hasKey) {
+            status = "local_only";
+            badgeClass = "bg-warning";
+            message = "Только локальный поиск (без чата с ИИ)";
+        } else if (!hasBrain && hasKey) {
+            status = "chat_only";
+            badgeClass = "bg-info";
+            message = "Только чат с ИИ (без интеллектуального поиска компонентов)";
+        } else {
+            status = "none";
+            badgeClass = "bg-danger";
+            message = "ИИ недоступен. Используйте ручной поиск.";
+        }
+        
+        // Обновляем индикатор в шапке
+        this.updateHeaderIndicator(status, badgeClass, message);
+        
+        // Обновляем панель статуса на странице ai-query
+        this.updateStatusPanel(hasBrain, hasKey, status, message);
+        
+        return { status, message, hasBrain, hasKey };
+    },
+    
+    updateHeaderIndicator: function(status, badgeClass, message) {
+        // Находим или создаем индикатор в шапке
+        let indicator = document.getElementById('ai-status-indicator');
+        
+        if (!indicator) {
+            // Если индикатора нет в DOM, ищем место для вставки
+            const navbarBrand = document.querySelector('.navbar-brand');
+            if (navbarBrand && navbarBrand.parentNode) {
+                indicator = document.createElement('div');
+                indicator.id = 'ai-status-indicator';
+                indicator.style.cssText = 'display: inline-block; margin-left: 10px;';
+                navbarBrand.parentNode.insertBefore(indicator, navbarBrand.nextSibling);
+            }
+        }
+        
+        if (indicator) {
+            const statusText = {
+                "full": "ИИ: Полный",
+                "local_only": "ИИ: Локальный",
+                "chat_only": "ИИ: Чат",
+                "none": "ИИ: Выкл",
+                "unknown": "ИИ: ?"
+            };
+            
+            indicator.innerHTML = `
+                <span class="badge ${badgeClass}" title="${escapeHtml(message)}" style="cursor: help;">
+                    <i class="fas fa-robot"></i> ${statusText[status] || status}
+                </span>
+            `;
+        }
+    },
+    
+    updateStatusPanel: function(hasBrain, hasKey, status, message) {
+        const statusPanel = document.getElementById('ai-system-status-panel');
+        if (!statusPanel) return;
+        
+        // Обновляем иконки статусов
+        const brainStatus = document.getElementById('brain-status');
+        if (brainStatus) {
+            brainStatus.className = hasBrain ? 'badge bg-success' : 'badge bg-danger';
+            brainStatus.textContent = hasBrain ? 'Доступен' : 'Недоступен';
+        }
+        
+        const keyStatus = document.getElementById('api-key-status');
+        if (keyStatus) {
+            if (hasKey) {
+                keyStatus.className = 'badge bg-success';
+                keyStatus.textContent = 'Сохранён';
+            } else {
+                keyStatus.className = 'badge bg-warning';
+                keyStatus.textContent = 'Отсутствует';
+            }
+        }
+        
+        const modeStatus = document.getElementById('ai-mode-status');
+        if (modeStatus) {
+            modeStatus.className = `badge bg-${status === 'full' ? 'success' : 
+                                   status === 'local_only' ? 'warning' : 
+                                   status === 'chat_only' ? 'info' : 'danger'}`;
+            modeStatus.textContent = {
+                "full": "Полный",
+                "local_only": "Локальный поиск",
+                "chat_only": "Только чат",
+                "none": "Отключен"
+            }[status] || "Неизвестно";
+        }
+    },
+    
+    checkApiKeyValidity: async function(apiKey) {
+        if (!apiKey) {
+            return { valid: false, error: "Нет ключа для проверки" };
+        }
+        
+        try {
+            // Простой тестовый запрос к OpenRouter для проверки ключа
+            const response = await fetch('https://openrouter.ai/api/v1/auth/key', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                return { 
+                    valid: true, 
+                    data: data,
+                    model: data.data?.model || "deepseek/deepseek-chat"
+                };
+            } else {
+                return { 
+                    valid: false, 
+                    error: `Ключ недействителен (код: ${response.status})` 
+                };
+            }
+        } catch (error) {
+            return { 
+                valid: false, 
+                error: "Ошибка проверки ключа: " + error.message 
+            };
+        }
     }
 };
 
@@ -189,7 +338,7 @@ async function sendOpenRouterQuery(userQuestion) {
     
     if (!userApiKey) {
         showNotification('❌ Для режима чата с ИИ необходим API-ключ OpenRouter.', 'danger');
-        return { success: false, error: 'API ключ не указан' };
+        return { success: false, error: 'API ключ не указан', mode: 'no_key' };
     }
 
     // Создаем системный промпт для ИИ
@@ -250,20 +399,24 @@ async function sendOpenRouterQuery(userQuestion) {
         const data = await response.json();
         return {
             success: true,
-            response: data.choices?.[0]?.message?.content || 'Нет ответа от ИИ'
+            response: data.choices?.[0]?.message?.content || 'Нет ответа от ИИ',
+            mode: 'openrouter_chat'
         };
 
     } catch (error) {
         console.error('Ошибка при запросе к OpenRouter:', error);
         return {
             success: false,
-            error: error.message
+            error: error.message,
+            mode: 'openrouter_error'
         };
     }
 }
 
 // Функция для отправки запроса к brain.py (поиск компонентов)
 async function sendBrainQuery(userQuestion) {
+    const userApiKey = ApiKeyManager.getKey();  // 🔑 Берем ключ из localStorage
+    
     try {
         const response = await fetch('/api/ai-query', {
             method: 'POST',
@@ -271,7 +424,8 @@ async function sendBrainQuery(userQuestion) {
                 'Content-Type': 'application/json' 
             },
             body: JSON.stringify({ 
-                query: userQuestion 
+                query: userQuestion,
+                api_key: userApiKey  // 🔑 Передаем ключ на сервер
             })
         });
         
@@ -285,7 +439,8 @@ async function sendBrainQuery(userQuestion) {
         console.error('Ошибка brain.py запроса:', error);
         return { 
             success: false, 
-            error: error.message 
+            error: error.message,
+            mode: "brain_error"
         };
     }
 }
@@ -316,7 +471,8 @@ function displayOpenRouterResponse(question, result) {
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5><i class="fas fa-robot text-success"></i> Ответ ИИ (общий вопрос)</h5>
                 <div>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="copyAiResponse(this)">
+                    <span class="badge bg-success">Режим: Чат с ИИ</span>
+                    <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyAiResponse(this)">
                         <i class="fas fa-copy"></i> Копировать
                     </button>
                 </div>
@@ -440,12 +596,18 @@ function displayBrainResponse(question, result) {
         return;
     }
     
+    const mode = result.mode || 'unknown';
+    const modeBadge = mode === 'openrouter' ? '<span class="badge bg-success">Режим: ИИ-поиск</span>' :
+                     mode === 'local_parser' ? '<span class="badge bg-warning">Режим: Локальный поиск</span>' :
+                     '<span class="badge bg-secondary">Режим: Поиск</span>';
+    
     let html = `
         <div class="ai-response">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h5><i class="fas fa-search text-info"></i> Результат поиска компонентов</h5>
                 <div>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="copyQueryResult(this)">
+                    ${modeBadge}
+                    <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyQueryResult(this)">
                         <i class="fas fa-copy"></i> Копировать
                     </button>
                 </div>
@@ -468,6 +630,7 @@ function displayBrainResponse(question, result) {
         html += `
             <div class="alert alert-info">
                 <i class="fas fa-microchip"></i> Найдено компонентов: <strong>${count}</strong>
+                ${mode === 'local_parser' ? '<br><small class="text-muted">(используется локальный поиск по ключевым словам)</small>' : ''}
             </div>
         `;
         
@@ -882,7 +1045,13 @@ document.addEventListener('DOMContentLoaded', function() {
         new bootstrap.Tooltip(tooltipTriggerEl);
     });
     
-    // 2. Обработка формы фильтров (если есть на странице)
+    // 2. Сохраняем статус brain.py в data-атрибут для использования в JavaScript
+    const brainAvailableElement = document.querySelector('[data-brain-available]');
+    if (brainAvailableElement) {
+        document.body.dataset.brainAvailable = brainAvailableElement.dataset.brainAvailable;
+    }
+    
+    // 3. Обработка формы фильтров (если есть на странице)
     const filterForm = document.getElementById('filter-form');
     if (filterForm) {
         filterForm.addEventListener('submit', function(e) {
@@ -900,7 +1069,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // 3. Инициализация управления API-ключом
+    // 4. Инициализация управления API-ключом
     ApiKeyManager.loadKey();
     
     const saveKeyBtn = document.getElementById('save-api-key-btn');
@@ -922,7 +1091,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // 4. Обработка формы ИИ-запросов
+    // 5. Обработка формы ИИ-запросов
     const aiQueryForm = document.getElementById('ai-query-form');
     if (aiQueryForm) {
         aiQueryForm.addEventListener('submit', async function(e) {
@@ -982,7 +1151,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // 5. Автозаполнение ИИ-запроса из URL параметра
+    // 6. Автозаполнение ИИ-запроса из URL параметра
     const urlParams = new URLSearchParams(window.location.search);
     const componentParam = urlParams.get('component');
     if (componentParam && document.getElementById('ai-query-input')) {
@@ -990,8 +1159,11 @@ document.addEventListener('DOMContentLoaded', function() {
             `Расскажи о компоненте ${escapeHtml(componentParam)}: его параметрах, характеристиках и применении в схемах`;
     }
     
-    // 6. Загрузка истории запросов
+    // 7. Загрузка истории запросов
     loadQueryHistory();
+    
+    // 8. Обновление статуса системы
+    AiStatusManager.updateStatus();
 });
 
 // Функция для сохранения запроса в истории
@@ -1002,6 +1174,7 @@ function saveToHistory(query, result, type) {
         history.unshift({
             query: query,
             type: type,
+            mode: result.mode || 'unknown',
             response: result.response ? result.response.substring(0, 200) + '...' : 'Результаты поиска',
             timestamp: new Date().toISOString(),
             success: result.success
@@ -1034,12 +1207,15 @@ function loadQueryHistory() {
                 const dateStr = date.toLocaleDateString();
                 const typeIcon = item.type === 'chat' ? 'fa-comments text-success' : 'fa-search text-info';
                 const typeText = item.type === 'chat' ? 'Чат' : 'Поиск';
+                const modeBadge = item.mode === 'local_parser' ? '<span class="badge bg-warning ms-1">Лок.</span>' : 
+                                 item.mode === 'openrouter' ? '<span class="badge bg-success ms-1">ИИ</span>' : '';
                 
                 html += `
                     <a href="javascript:void(0)" class="list-group-item list-group-item-action" onclick="loadHistoryQuery(${index})">
                         <div class="d-flex w-100 justify-content-between">
                             <small class="text-truncate" style="max-width: 200px;" title="${escapeHtml(item.query)}">
                                 <i class="fas ${typeIcon} me-1"></i> ${escapeHtml(item.query)}
+                                ${modeBadge}
                             </small>
                             <small class="text-${item.success ? 'success' : 'danger'}">
                                 <i class="fas fa-${item.success ? 'check' : 'times'}"></i>
@@ -1080,6 +1256,7 @@ function loadHistoryQuery(index) {
 
 // Экспортируем функции для глобального использования
 window.ApiKeyManager = ApiKeyManager;
+window.AiStatusManager = AiStatusManager;
 window.askAboutComponent = askAboutComponent;
 window.showNotification = showNotification;
 window.loadHistoryQuery = loadHistoryQuery;

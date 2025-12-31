@@ -8,6 +8,40 @@
                 <h4 class="mb-0"><i class="fas fa-robot"></i> Интеллектуальный ассистент библиотеки компонентов</h4>
             </div>
             <div class="card-body">
+                <!-- ПАНЕЛЬ СТАТУСА СИСТЕМЫ -->
+                <div class="card mb-4" id="ai-system-status-panel">
+                    <div class="card-header bg-info text-white">
+                        <i class="fas fa-signal"></i> Статус системы
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <h6>Локальный ИИ (brain.py):</h6>
+                                <span id="brain-status" class="badge {% if brain_available %}bg-success{% else %}bg-danger{% endif %}">
+                                    {% if brain_available %}Доступен{% else %}Недоступен{% endif %}
+                                </span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <h6>API-ключ OpenRouter:</h6>
+                                <span id="api-key-status" class="badge bg-secondary">Не проверен</span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <h6>Режим работы:</h6>
+                                <span id="ai-mode-status" class="badge bg-warning">Автоопределение</span>
+                            </div>
+                        </div>
+                        <div class="alert alert-light mt-2 small">
+                            <strong>Объяснение режимов:</strong>
+                            <ul class="mb-0">
+                                <li><span class="badge bg-success">Полный</span> — доступны все функции (поиск + чат)</li>
+                                <li><span class="badge bg-warning">Локальный поиск</span> — поиск без чата с ИИ</li>
+                                <li><span class="badge bg-info">Только чат</span> — чат с ИИ без интеллектуального поиска</li>
+                                <li><span class="badge bg-danger">Отключен</span> — используйте ручной поиск</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- ФОРМА ВВОДА API-КЛЮЧА -->
                 <div class="card mb-4">
                     <div class="card-header bg-primary text-white">
@@ -58,6 +92,11 @@
                                                 <li>Помощь в проектировании схем</li>
                                                 <li>Ответы на теоретические вопросы</li>
                                             </ul>
+                                            <div class="mt-2">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-info-circle"></i> Требуется API-ключ OpenRouter
+                                                </small>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -75,6 +114,11 @@
                                                 <li>Графическое представление ВАХ компонентов</li>
                                                 <li>Сравнение характеристик различных компонентов</li>
                                             </ul>
+                                            <div class="mt-2">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-info-circle"></i> Работает без API-ключа (локальный режим)
+                                                </small>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -202,6 +246,9 @@
                                     <li>Модель DeepSeek обрабатывает запрос</li>
                                     <li>Ответ возвращается и отображается на странице</li>
                                 </ol>
+                                <div class="alert alert-warning small mb-0">
+                                    <i class="fas fa-key"></i> Требуется API-ключ OpenRouter
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -215,10 +262,13 @@
                                 <p><strong>Для поиска компонентов:</strong></p>
                                 <ol>
                                     <li>Система определяет, что запрос относится к поиску компонентов</li>
-                                    <li>Запрос обрабатывается локальным ИИ (brain.py)</li>
-                                    <li>Выполняется поиск в базе данных компонентов</li>
+                                    <li>Если есть API-ключ, используется ИИ для точного поиска</li>
+                                    <li>Если нет ключа, используется локальный парсер</li>
                                     <li>Результаты возвращаются с возможностью просмотра ВАХ</li>
                                 </ol>
+                                <div class="alert alert-success small mb-0">
+                                    <i class="fas fa-check"></i> Работает без API-ключа
+                                </div>
                             </div>
                         </div>
                     </div>

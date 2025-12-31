@@ -8,12 +8,16 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
-<body>
+<body data-brain-available="{{ brain_available|lower }}">
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="/">
                 <i class="fas fa-microchip"></i> AI Component Library
             </a>
+            
+            <!-- Индикатор статуса ИИ (будет добавлен через JavaScript) -->
+            <div id="ai-status-indicator"></div>
+            
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>

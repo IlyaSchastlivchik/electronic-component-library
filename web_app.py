@@ -307,14 +307,17 @@ async def api_process_ai_query(request: Request):
         logger.error("ИИ-модуль (brain.py) недоступен")
         return JSONResponse({
             "success": False,
-            "error": "ИИ-модуль для поиска компонентов недоступен"
+            "error": "ИИ-модуль для поиска компонентов недоступен",
+            "mode": "no_brain"
         }, status_code=503)
     
     try:
         data = await request.json()
         user_query = data.get("query", "")
+        user_api_key = data.get("api_key")  # 🔑 Получаем ключ из запроса
         
         logger.info(f"🔍 ИИ-запрос получен (brain.py): '{user_query}'")
+        logger.info(f"🔑 Ключ предоставлен: {'Да' if user_api_key else 'Нет'}")
         
         if not user_query:
             logger.warning("Пустой ИИ-запрос")
@@ -325,8 +328,8 @@ async def api_process_ai_query(request: Request):
         
         # Используем asyncio.to_thread для вызова синхронного метода
         logger.info("⏳ Обработка запроса через brain.py...")
-        result = await asyncio.to_thread(brain.process_query, user_query)
-        logger.info(f"✅ Результат обработки: успех={result.get('success')}")
+        result = await asyncio.to_thread(brain.process_query, user_query, user_api_key)
+        logger.info(f"✅ Результат обработки: успех={result.get('success')}, режим={result.get('mode')}")
         
         return JSONResponse(result)
         
@@ -363,7 +366,7 @@ async def proxy_openrouter_chat(request: Request):
             )
 
         # 2. Подготавливаем запрос к OpenRouter
-        openrouter_url = "https://openrouter.ai/api/v1/chat/completions "
+        openrouter_url = "https://openrouter.ai/api/v1/chat/completions"
         
         # 2.1. Формируем заголовки, включая ключ ПОЛЬЗОВАТЕЛЯ
         headers = {
@@ -404,6 +407,23 @@ async def proxy_openrouter_chat(request: Request):
     except Exception as e:
         logger.error(f"Ошибка проксирования запроса: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
+
+# ==================== НОВЫЙ ENDPOINT: ПРОВЕРКА СТАТУСА ====================
+
+@app.get("/api/system/status")
+async def api_get_system_status():
+    """API: Получение статуса системы"""
+    return {
+        "brain_available": brain_available,
+        "components_count": len(components),
+        "api_endpoints": {
+            "ai_query": "/api/ai-query",
+            "openrouter_proxy": "/api/openrouter/chat",
+            "components_search": "/api/components/search/extended",
+            "system_status": "/api/system/status"
+        },
+        "timestamp": datetime.datetime.now().isoformat()
+    }
 
 # ==================== ВЕБ-ИНТЕРФЕЙС ====================
 
@@ -591,6 +611,7 @@ async def ai_query_page(request: Request):
         "has_openrouter_proxy": True,
         "stats": stats
     })
+
 # ==================== HEALTHCHECK ENDPOINT ====================
 
 @app.get("/health")
@@ -601,6 +622,7 @@ async def health_check():
         "components_loaded": len(components),
         "brain_available": brain_available
     }
+
 # ==================== ЗАПУСК СЕРВЕРА ====================
 
 if __name__ == "__main__":
